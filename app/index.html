@@ -1,0 +1,6073 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Modern Heka Calendar</title>
+
+  <style>
+    :root{
+      --bg: #0b0b0f;
+      --panel: rgba(255,255,255,0.03);
+      --panel2: rgba(255,255,255,0.05);
+      --border: rgba(255,255,255,0.12);
+      --text: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.62);
+      --muted2: rgba(255,255,255,0.45);
+      --accent: #caa24a;
+      --accent2: #9d7bf2;
+      --danger: #ff5a6d;
+      --ok: #55ffa4;
+      --shadow: 0 18px 60px rgba(0,0,0,0.55);
+      --radius: 16px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+
+    *{ box-sizing: border-box; }
+    body{
+      margin: 0;
+      background:
+        radial-gradient(1200px 700px at 20% 10%, rgba(202,162,74,0.10), transparent 60%),
+        radial-gradient(900px 600px at 80% 30%, rgba(157,123,242,0.10), transparent 55%),
+        radial-gradient(1000px 700px at 50% 90%, rgba(255,255,255,0.04), transparent 60%),
+        var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      padding: 18px;
+    }
+
+    body.modalOpen{ overflow: hidden; }
+
+    /* Month view toggles */
+    body.hideCivil .civil{ display: none !important; }
+    body.hideMoonMonth .day .moon{ display: none !important; }
+
+    .wrap{
+      max-width: 1220px;
+      margin: 0 auto;
+    }
+
+    .top{
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    @media (max-width: 860px){
+      .top{ grid-template-columns: 1fr; }
+    }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px 14px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .brand{
+      display:flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .title{
+      font-size: 20px;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+    }
+
+    .subtitle{
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-family: var(--mono);
+    }
+
+    .meta{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    .pill{
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      display:flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .pill strong{
+      color: var(--text);
+      font-weight: 650;
+    }
+
+    .controls{
+      display:flex;
+      gap: 8px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .btn{
+      cursor: pointer;
+      user-select: none;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 12px;
+      font-family: var(--mono);
+      letter-spacing: 0.03em;
+      transition: transform 0.05s ease, background 0.2s ease;
+    }
+    .btn:hover{ background: rgba(255,255,255,0.06); }
+    .btn:active{ transform: scale(0.98); }
+
+    .btn.primary{
+      border-color: rgba(202,162,74,0.55);
+      background: rgba(202,162,74,0.10);
+    }
+    .btn.danger{
+      border-color: rgba(255,90,109,0.55);
+      background: rgba(255,90,109,0.08);
+    }
+
+    .toggleBtn{
+      cursor: pointer;
+      user-select: none;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 12px;
+      font-family: var(--mono);
+      letter-spacing: 0.03em;
+    }
+    .toggleBtn:hover{ background: rgba(255,255,255,0.06); }
+    .toggleBtn.isOff{
+      opacity: 0.75;
+      border-color: rgba(255,255,255,0.10);
+    }
+
+/* ===========================
+   TIME MODE VISUAL STATE
+=========================== */
+
+body.modeTrue{
+  background:
+    radial-gradient(1200px 700px at 20% 10%, rgba(85,255,164,0.10), transparent 60%),
+    radial-gradient(900px 600px at 80% 30%, rgba(157,123,242,0.12), transparent 55%),
+    radial-gradient(1000px 700px at 50% 90%, rgba(255,255,255,0.04), transparent 60%),
+    var(--bg);
+}
+
+body.modeTrue .card{
+  border-color: rgba(85,255,164,0.22);
+}
+
+.modeRow{ display:flex; gap:10px; align-items:center; }
+
+.modeBadge{
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.03);
+  color: rgba(255,255,255,0.78);
+}
+
+body.modeTrue .modeBadge{
+  border-color: rgba(85,255,164,0.55);
+  background: rgba(85,255,164,0.10);
+  color: rgba(255,255,255,0.92);
+  box-shadow: 0 0 0 1px rgba(85,255,164,0.10) inset, 0 0 22px rgba(85,255,164,0.18);
+}
+
+    .select, .searchInput{
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 12px;
+      font-family: var(--mono);
+      outline: none;
+    }
+    .select:focus, .searchInput:focus{
+      border-color: rgba(157,123,242,0.55);
+      box-shadow: 0 0 0 3px rgba(157,123,242,0.12);
+    }
+
+    .select option{
+      background: #ffffff;
+      color: #111111;
+    }
+
+    .searchInput{
+      min-width: 240px;
+      flex: 1 1 240px;
+    }
+
+    .gridCard{ padding: 0; }
+
+    .monthHeader{
+      display:flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 14px 14px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.02);
+
+      position: sticky;
+      top: 0;
+      z-index: 60;
+      backdrop-filter: blur(10px);
+    }
+
+/* ===========================
+   STABLE MONTH HEADER CONTROLS
+   Prev/Next fixed, rest scrolls on mobile
+=========================== */
+
+.monthHeader{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.monthHeader .right{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.monthHeader .navLock{
+  display: flex;
+  gap: 8px;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.monthHeader .miniControls{
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+
+  /* Override any generic .miniControls rules elsewhere */
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  white-space: nowrap !important;
+}
+
+.monthHeader .miniControls::-webkit-scrollbar{
+  height: 0;
+}
+
+.monthHeader .miniControls > *{
+  flex: 0 0 auto;
+}
+
+/* ===========================
+   MOBILE HEADER STACK (OPTION 2)
+   Prevents hidden controls on small screens
+=========================== */
+@media (max-width: 560px){
+  .monthHeader{
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .monthHeader .right{
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .monthHeader .navLock{
+    justify-content: space-between;
+  }
+
+  .monthHeader .miniControls{
+    justify-content: flex-start;
+    flex-wrap: wrap !important;
+    overflow: visible !important;
+    white-space: normal !important;
+  }
+}
+    .monthHeader .left{
+      display:flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .monthName{
+      font-size: 18px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .monthSub{
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    .dow{
+      display:grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0;
+      padding: 10px 10px 6px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.01);
+    }
+    .dow div{
+      text-align:center;
+      font-size: 11px;
+      color: var(--muted2);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-family: var(--mono);
+      padding: 6px 0;
+    }
+
+    .cal{
+      display:grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+      padding: 10px;
+    }
+
+    .day{
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.02);
+      min-height: 108px;
+      padding: 10px 10px 10px;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+    }
+    .day:hover{
+      background: rgba(255,255,255,0.04);
+      border-color: rgba(255,255,255,0.18);
+    }
+    .day:active{ transform: scale(0.99); }
+
+    .day:focus-visible{
+      outline: 2px solid rgba(157,123,242,0.75);
+      outline-offset: 3px;
+    }
+
+    .day .hekaNum{
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+    }
+    .day .civil{
+      font-family: var(--mono);
+      color: var(--muted);
+      font-size: 11px;
+      margin-top: 2px;
+    }
+    .day .moon{
+      position:absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 16px;
+      opacity: 0.85;
+    }
+
+/* Mobile moon and day number spacing */
+.day .moon{
+  width: 1.4em;
+  text-align: center;
+  line-height: 1;
+}
+
+.day .hekaNum{
+  padding-right: 1.6em; /* reserves space for the moon */
+  line-height: 1.05;
+}
+
+@media (max-width: 420px){
+  .day .moon{
+    top: 8px;
+    right: 8px;
+    font-size: 14px;
+    opacity: 0.9;
+  }
+
+  .day{
+    min-height: 102px;
+  }
+
+  .day .hekaNum{
+    font-size: 17px;
+    padding-right: 1.8em;
+  }
+}
+
+/* Portrait specific: applies even on bigger phones where width is still tight */
+@media (orientation: portrait) and (max-width: 700px){
+  .day .moon{
+    top: 8px;
+    right: 8px;
+    font-size: 14px;
+    width: 1.6em;
+    text-align: center;
+  }
+
+  /* Always reserve room for the moon in portrait */
+  .day .hekaNum{
+    padding-right: 2.0em;
+  }
+}
+
+@media (orientation: portrait) and (max-width: 700px){
+  .day .moon{
+    transform: translateY(1px);
+  }
+}
+    .day .tags{
+      margin-top: 8px;
+      display:flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .tag{
+      font-family: var(--mono);
+      font-size: 10px;
+      color: rgba(255,255,255,0.78);
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.03);
+      padding: 3px 6px;
+      border-radius: 999px;
+      max-width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .tag.hol{ border-color: rgba(202,162,74,0.55); background: rgba(202,162,74,0.08); }
+    .tag.eq{ border-color: rgba(157,123,242,0.55); background: rgba(157,123,242,0.10); }
+    .tag.note{ border-color: rgba(85,255,164,0.45); background: rgba(85,255,164,0.07); }
+
+    .day .snippet{
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      font-size: 11px;
+      color: rgba(255,255,255,0.72);
+      line-height: 1.35;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      word-break: break-word;
+    }
+
+    .day.today{
+      border-color: rgba(202,162,74,0.70);
+      background: rgba(202,162,74,0.08);
+    }
+
+    .day.selected{
+      outline: 2px solid rgba(157,123,242,0.65);
+      outline-offset: 2px;
+    }
+
+    .panelTitle{
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.10em;
+      color: var(--muted);
+      font-family: var(--mono);
+      margin-bottom: 10px;
+    }
+
+    .sideRow{
+      display:flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .noteBox{
+      display:flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    textarea{
+      width: 100%;
+      min-height: 160px;
+      resize: vertical;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(0,0,0,0.25);
+      color: var(--text);
+      padding: 10px 10px;
+      font-family: var(--sans);
+      outline: none;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.25);
+    }
+    textarea:focus{
+      border-color: rgba(157,123,242,0.55);
+      box-shadow: 0 0 0 3px rgba(157,123,242,0.12);
+    }
+
+    .small{
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+      line-height: 1.35;
+    }
+
+    .kv{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .kv .pill{ justify-content: space-between; }
+
+    .footerHint{
+      margin-top: 10px;
+      font-size: 11px;
+      color: var(--muted2);
+      font-family: var(--mono);
+      line-height: 1.4;
+    }
+
+    .cal.isFading{
+      opacity: 0.55;
+      transition: opacity 140ms ease;
+    }
+    .cal.isReady{
+      opacity: 1;
+      transition: opacity 140ms ease;
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      .btn, .day, .cal.isFading, .cal.isReady{
+        transition: none !important;
+      }
+    }
+
+    /* Square refinements */
+    .meta .pill{ border-radius: 10px; }
+    #selectedKv .pill{ border-radius: 10px; }
+    .searchInput{ border-radius: 10px; }
+    #searchBtn, #clearSearchBtn, #installBtn{ border-radius: 10px; }
+    #stateFilterTop.select{ border-radius: 10px; }
+    #prevMonthTop, #nextMonthTop, #goTodayTop, #printMonthBtn, #shareBtn, #yearBtn{
+      border-radius: 10px;
+    }
+    #moonMonthToggle, #civilToggle{
+      border-radius: 10px;
+    }
+
+    /* Month index pill */
+    .pillMonthIndex{
+      border-radius: 10px;
+      border-color: rgba(157,123,242,0.72);
+      background: rgba(157,123,242,0.12);
+      box-shadow:
+        0 0 0 1px rgba(157,123,242,0.12) inset,
+        0 0 24px rgba(157,123,242,0.22);
+      color: rgba(255,255,255,0.82);
+    }
+    .pillMonthIndex strong{
+      color: rgba(255,255,255,0.95);
+    }
+
+    /* Popover */
+    .popover{
+      position: fixed;
+      z-index: 9999;
+      max-width: min(520px, calc(100vw - 24px));
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 14px;
+      box-shadow: 0 18px 60px rgba(0,0,0,0.55);
+      padding: 10px 10px;
+      backdrop-filter: blur(10px);
+    }
+
+    .popoverTitle{
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      display:flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .popoverClose{
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 6px 8px;
+      font-family: var(--mono);
+      font-size: 11px;
+    }
+
+    .popoverList{
+      margin: 0;
+      padding-left: 16px;
+      color: rgba(255,255,255,0.86);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .popoverRow{
+      display:flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .chip{
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.03);
+      color: rgba(255,255,255,0.86);
+      padding: 6px 8px;
+      border-radius: 999px;
+      font-family: var(--mono);
+      font-size: 11px;
+    }
+
+    /* Modal */
+    .modalOverlay{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.78);
+      z-index: 9998;
+      display: none;
+      padding: 18px;
+      backdrop-filter: blur(8px);
+    }
+    .modalOverlay.open{ display: flex; }
+    .modal{
+      margin: auto;
+      width: min(1100px, 100%);
+      max-height: calc(100vh - 36px);
+      overflow: auto;
+      background: rgba(11,11,15,0.92);
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+    .modalHeader{
+      display:flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .modalTitle{
+      font-family: var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 0.10em;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .yearGrid{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    @media (max-width: 980px){
+      .yearGrid{ grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 620px){
+      .yearGrid{ grid-template-columns: 1fr; }
+    }
+
+    .mini{
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.02);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .miniHead{
+      display:flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.02);
+    }
+    .miniName{
+      font-family: var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 12px;
+      color: rgba(255,255,255,0.90);
+    }
+    .miniHint{
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .miniDow{
+      display:grid;
+      grid-template-columns: repeat(7, 1fr);
+      padding: 6px 8px 0;
+      gap: 0;
+      color: var(--muted2);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .miniDow div{ text-align:center; padding: 4px 0; }
+    .miniCal{
+      display:grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      padding: 8px;
+    }
+    .miniCell{
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.02);
+      border-radius: 10px;
+      min-height: 26px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: rgba(255,255,255,0.82);
+      cursor: pointer;
+      padding: 0 6px;
+      gap: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .miniCell:hover{
+      background: rgba(255,255,255,0.04);
+      border-color: rgba(255,255,255,0.18);
+    }
+    .miniBlank{
+      min-height: 26px;
+      border: 1px solid transparent;
+      background: transparent;
+      border-radius: 10px;
+    }
+
+    .miniCell.showMoon::after{
+      content: attr(data-moon);
+      font-size: 10px;
+      opacity: 0.85;
+    }
+
+   /* Print containers are hidden on screen by default (no !important) */
+#printMonthBanner,
+#printYearPages{
+  display: none;
+}
+
+/* PRINT YEAR: hide full app UI */
+body.printYear .wrap,
+body.printYear #yearModal,
+body.printYear .popover{
+  display: none !important;
+}
+
+/* PRINT MONTH: keep calendar, hide overlays only */
+body.printMonth #yearModal,
+body.printMonth .popover{
+  display: none !important;
+}
+
+    /* Print month banner formatting */
+    #printMonthBanner{
+      padding: 18px;
+      color: #000;
+      font-family: var(--sans);
+    }
+
+    /* Print year pages formatting */
+    .printPage{
+      page-break-after: always;
+      padding: 18px;
+      color: #000;
+      font-family: var(--sans);
+    }
+    .printMonthTitle{
+      font-family: var(--mono);
+      font-size: 14px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .printMonthNote{
+      margin-bottom: 12px;
+      white-space: pre-wrap;
+      border: 1px solid #ccc;
+      padding: 10px;
+      border-radius: 10px;
+    }
+    .printDow{
+      display:grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0;
+      margin-bottom: 6px;
+      font-family: var(--mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .printDow div{
+      text-align:center;
+      padding: 6px 0;
+      border-bottom: 1px solid #ddd;
+    }
+    .printCal{
+      display:grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+    }
+    .printCell{
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      min-height: 92px;
+      padding: 8px;
+      overflow: hidden;
+    }
+    .printCell .n{
+      font-family: var(--mono);
+      font-weight: 800;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+    .printCell .c{
+      font-family: var(--mono);
+      font-size: 11px;
+      color: #333;
+      margin-bottom: 6px;
+    }
+    .printCell .snip{
+      font-size: 11px;
+      line-height: 1.35;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+/* HEKA title — print only (hidden on screen) */
+#hekaTitle{
+  display: none;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 14px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+    /* Segment 12 additions consolidated here (was incorrectly inside <script>) */
+    .printBannerInner{
+      padding: 12px 14px;
+      border: 1px solid #ccc;
+      margin: 0 0 10px 0;
+      font-family: var(--sans);
+    }
+    .printBannerTitle{
+      font-size: 18px;
+      font-weight: 750;
+      letter-spacing: 0.02em;
+      margin-bottom: 6px;
+    }
+    .printBannerNote{
+      font-size: 12px;
+      line-height: 1.4;
+      margin-top: 6px;
+    }
+.printBannerNote strong{
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+    .printPage{
+      page-break-after: always;
+      break-after: page;
+      padding: 0;
+      margin: 0;
+    }
+
+    .printPageHeader{
+      border: 1px solid #ccc;
+      padding: 12px 14px;
+      margin: 0 0 10px 0;
+    }
+
+    .printMonthTitle{
+      font-size: 18px;
+      font-weight: 780;
+      margin: 0 0 6px 0;
+    }
+
+    .printYearTag{
+  font-size: 13px;
+  font-weight: 800;
+  margin-left: 10px;
+  color: #111;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+    .printDow{
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      border: 1px solid #ccc;
+      border-bottom: none;
+    }
+    .printDow div{
+      text-align: center;
+      padding: 6px 0;
+      font-size: 11px;
+      font-family: var(--mono);
+      color: #333;
+      border-right: 1px solid #ccc;
+    }
+    .printDow div:last-child{ border-right: none; }
+
+    .printCal{
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      border: 1px solid #ccc;
+    }
+
+    .printCell{
+      min-height: 95px;
+      border-right: 1px solid #ccc;
+      border-bottom: 1px solid #ccc;
+      padding: 8px 8px 6px;
+      overflow: hidden;
+      border-radius: 0;
+    }
+    .printCell:nth-child(7n){ border-right: none; }
+    .printBlank{ background: #fff; }
+
+    .printCellTop{
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .printHekaNum{
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 800;
+      color: #111;
+    }
+
+    .printCivil{
+      font-family: var(--mono);
+      font-size: 11px;
+      color: #333;
+    }
+
+    .printNote{
+      font-family: var(--sans);
+      font-size: 10.5px;
+      line-height: 1.28;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #111;
+    }
+
+/* SCREEN SAFETY LOCK
+   Print hosts must never show on screen, even if print classes are added */
+#printMonthBanner,
+#printYearPages{
+  display: none !important;
+}
+
+@media print{
+  body{
+    background: #fff !important;
+    color: #000 !important;
+    padding: 0 !important;
+  }
+
+  /* Print Month prints calendar */
+  body.printMonth .wrap{ display:block !important; }
+  body.printMonth .top{ display:none !important; }
+  body.printMonth .gridCard{ display:block !important; }
+  body.printMonth #printMonthBanner{ display:block !important; }
+
+  /* Print Year prints the 13 pages only */
+  body.printYear #printYearPages{ display:block !important; }
+  body.printYear #printMonthBanner{ display:none !important; }
+
+  /* Hide non-print UI */
+  body.printYear .top,
+  body.printYear .meta,
+  body.printYear .footerHint,
+  body.printYear #yearModal,
+  body.printYear .popover,
+  body.printYear #installBtn,
+  body.printMonth .top,
+  body.printMonth .meta,
+  body.printMonth .footerHint,
+  body.printMonth #yearModal,
+  body.printMonth .popover,
+  body.printMonth #installBtn{
+    display: none !important;
+  }
+
+  /* Hide header buttons only */
+  .monthHeader .miniControls{ display: none !important; }
+
+  /* Keep the month grid visible in Print Month */
+  body.printMonth .gridCard{ display: block !important; }
+
+  /* Print banner visible */
+  body.printMonth #printMonthBanner{
+    display: block !important;
+    margin: 0 0 10px 0 !important;
+  }
+
+  /* In Print Year mode, hide live calendar grid */
+  body.printYear .gridCard{ display: none !important; }
+
+  .card{
+    box-shadow: none !important;
+    background: #fff !important;
+    border: 1px solid #bbb !important;
+  }
+
+  .monthHeader{
+    position: static !important;
+    backdrop-filter: none !important;
+    background: #fff !important;
+    border-bottom: 1px solid #bbb !important;
+  }
+
+  .monthName,
+  .monthSub{ color: #000 !important; }
+
+  .dow{
+    background: #fff !important;
+    border-bottom: 1px solid #bbb !important;
+  }
+
+  .dow div{
+    color: #111 !important;
+    font-weight: 700;
+  }
+
+  .cal{
+    gap: 6px !important;
+    padding: 10px !important;
+  }
+
+  .day{
+    background: #fff !important;
+    border: 1px solid #bbb !important;
+    color: #000 !important;
+    min-height: 115px !important;
+  }
+
+  .day .hekaNum{
+    color: #000 !important;
+    font-size: 18px !important;
+  }
+
+  .day .civil{
+    color: #111 !important;
+    font-size: 11px !important;
+  }
+
+  .day .moon{ display: none !important; }
+
+  .tag{
+    border: 1px solid #bbb !important;
+    background: #f3f3f3 !important;
+    color: #000 !important;
+  }
+
+  .snippet{
+    color: #111 !important;
+    border-top: 1px solid #ddd !important;
+  }
+}
+
+/* Banner styling (outside @media print is fine) */
+#printMonthBanner{
+  padding: 14px 14px;
+}
+
+.printBannerInner{
+  background: #fff;
+  border: 1px solid #bbb;
+  border-radius: 10px;
+}
+
+.printBannerTitle{
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.printBannerNote{
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* Print Month cleanup */
+body.printMonth .monthSub{
+  display: none !important; /* removes "Year 2025 • Civil hint: Jan" */
+}
+
+body.printMonth .pillMonthIndex{
+  display: none !important; /* removes Month # 11/13 */
+}
+
+/* Remove any selected or highlighted styling for print */
+body.printMonth .day.selected{
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+body.printMonth .day{ box-shadow: none !important; }
+
+/* Moon printing should respect your Moon toggle. If Moon is ON, show it. If Moon is OFF, hide it. */
+body.printMonth:not(.hideMoonMonth) .day .moon{ display: block !important; }
+body.printMonth.hideMoonMonth .day .moon{ display: none !important; }
+
+/* Show HEKA title only in Print Month */
+body.printMonth #hekaTitle{
+  display: block !important;
+  color: #000 !important;
+  letter-spacing: 0.22em;
+  margin: 0 0 10px 0;
+}
+
+/* Hide HEKA title in Print Year */
+body.printYear #hekaTitle{ display: none !important; }
+
+/* Print Year: moon follows the Moon toggle */
+body.printYear .printMoon{
+  display: inline-block !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+  margin-left: 6px !important;
+  opacity: 0.95 !important;
+}
+
+body.printYear.hideMoonYear .printMoon{ display: none !important; }
+
+/* Print Month: hide Prev/Next nav */
+body.printMonth .monthHeader .navLock{ display: none !important; }
+
+/* ===========================
+   HEKA HINGE TEACHING CUES
+   Month header hint + Year modal divider
+=========================== */
+
+.hingeHint{
+  font-size: 11px;
+  color: rgba(255,255,255,0.70);
+  font-family: var(--mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hingeHint .hingeTag{
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.03);
+}
+
+.hingeHint .open{
+  border-color: rgba(202,162,74,0.55);
+  background: rgba(202,162,74,0.10);
+  color: rgba(255,255,255,0.92);
+}
+
+.hingeHint .close{
+  border-color: rgba(157,123,242,0.55);
+  background: rgba(157,123,242,0.10);
+  color: rgba(255,255,255,0.88);
+}
+
+/* Year modal hinge divider row */
+.yearDivider{
+  grid-column: 1 / -1;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+  border-radius: 16px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.yearDivider .left{
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.yearDivider .title{
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.88);
+}
+
+.yearDivider .sub{
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.yearDivider .badge{
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(202,162,74,0.55);
+  background: rgba(202,162,74,0.10);
+  color: rgba(255,255,255,0.92);
+  white-space: nowrap;
+}
+
+@media (max-width: 620px){
+  .yearDivider{
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .yearDivider .badge{
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* ===========================
+   HEKA PRINT YEAR – VISUAL REFINEMENT
+=========================== */
+
+@media print{
+  body.printYear #printYearPages{ padding: 14mm; }
+
+  body.printYear .printPage{
+    padding: 0;
+    margin: 0 0 10mm 0;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  body.printYear .printPageHeader{
+    border: 1px solid #bbb;
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin: 0 0 10px 0;
+  }
+
+  body.printYear .printHeaderTop{ margin-bottom: 10px; }
+
+  body.printYear .printMonthLine{
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 8px;
+  }
+
+  body.printYear .printMonthName{
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: #111;
+  }
+
+  body.printYear .printYearTag{
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #111;
+    padding: 6px 10px;
+    border: 1px solid #bbb;
+    border-radius: 999px;
+    background: #f4f4f4;
+    white-space: nowrap;
+  }
+
+  body.printYear .printArcRow{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  body.printYear .printArcPill{
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid #bbb;
+    background: #fff;
+  }
+
+  body.printYear .printArcPill.core{ background: #f7f7ff; }
+  body.printYear .printArcPill.open{ background: #fff7e6; }
+  body.printYear .printArcPill.close{ background: #f1f1ff; }
+
+  body.printYear .printArcNote{
+    font-family: var(--sans);
+    font-size: 12px;
+    color: #222;
+  }
+
+  body.printYear .printNotesBox{
+    border: 1px solid #bbb;
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: #fff;
+  }
+
+  body.printYear .printNotesTitle{
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #111;
+    margin-bottom: 6px;
+  }
+
+  body.printYear .printNotesBody{
+    font-family: var(--sans);
+    font-size: 12px;
+    line-height: 1.45;
+    color: #111;
+    min-height: 18px;
+  }
+
+  body.printYear .printNotesEmpty{ color: #666; }
+
+  body.printYear .printDow{
+    border: 1px solid #bbb;
+    border-radius: 12px 12px 0 0;
+    overflow: hidden;
+    margin-top: 10px;
+  }
+
+  body.printYear .printDow div{
+    background: #f4f4f4;
+    font-weight: 900;
+  }
+
+  body.printYear .printCal{
+    border: 1px solid #bbb;
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    overflow: hidden;
+  }
+
+  body.printYear .printCell{
+    min-height: 92px;
+    padding: 8px 8px 6px;
+  }
+
+  body.printYear .printCellTop{
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-start;
+    gap: 8px;
+    margin-bottom: 2px;
+  }
+
+  body.printYear .printCivilRow{
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 400; /* not bold */
+    letter-spacing: 0.02em;
+    color: #2a2a2a;
+    margin: 0 0 6px 0;
+    white-space: nowrap;
+  }
+
+  body.printYear .printHekaNum{
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 900;
+  }
+
+  body.printYear .printNote{
+    font-size: 10.5px;
+    line-height: 1.3;
+    color: #111;
+  }
+
+  @media print{
+    /* Kill any “screen layout” surprises */
+    html,
+    body{
+      height: auto !important;
+      min-height: 0 !important;
+      overflow: visible !important;
+    }
+
+    @media print{
+      /* Only nuke the page in PRINT YEAR mode */
+      body.printYear *{ visibility: hidden !important; }
+
+      /* Show only the year print container in PRINT YEAR mode */
+      body.printYear #printYearPages,
+      body.printYear #printYearPages *{
+        visibility: visible !important;
+      }
+
+      /* Print Month should NOT be nuked, so do not hide everything */
+      body.printMonth #printMonthBanner,
+      body.printMonth #printMonthBanner *{
+        visibility: visible !important;
+      }
+    }
+
+    /* Make hosts real printable flow elements */
+    #printMonthBanner,
+    #printYearPages{
+      display: block !important;
+      position: static !important;
+      width: auto !important;
+      height: auto !important;
+      overflow: visible !important;
+    }
+
+    /* Ensure your screen UI never prints */
+    .topbar,
+    .panel,
+    .popover,
+    .info-modal,
+    .yearModal,
+    .controls,
+    .searchRow{
+      display: none !important;
+    }
+  }
+}
+
+/* ===========================
+   PREMIUM PRINT YEAR PASS
+   Drop-in overrides
+=========================== */
+
+body.printYear #printYearPages{ padding: 14mm !important; }
+body.printYear .printPage{ margin: 0 0 10mm 0 !important; }
+
+body.printYear .printPageHeader{
+  border: 1px solid #b9b9b9 !important;
+  border-radius: 14px !important;
+  padding: 14px 16px !important;
+  margin: 0 0 10px 0 !important;
+  background: #fff !important;
+}
+
+body.printYear .printMonthLine{
+  padding-bottom: 10px !important;
+  margin-bottom: 10px !important;
+  border-bottom: 1px solid #e2e2e2 !important;
+}
+
+body.printYear .printMonthName{
+  font-size: 22px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.12em !important;
+}
+
+body.printYear .printYearTag{
+  font-size: 11px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.14em !important;
+  padding: 6px 12px !important;
+  border: 1px solid #c7c7c7 !important;
+  background: #f6f6f6 !important;
+}
+
+body.printYear .printArcRow{ gap: 12px !important; }
+
+body.printYear .printArcPill{
+  font-size: 10.5px !important;
+  letter-spacing: 0.14em !important;
+  padding: 6px 12px !important;
+  border: 1px solid #c7c7c7 !important;
+}
+
+body.printYear .printArcNote{
+  font-size: 12px !important;
+  color: #2a2a2a !important;
+}
+
+body.printYear .printNotesBox{
+  margin-top: 10px !important;
+  border: 1px solid #c7c7c7 !important;
+  border-radius: 14px !important;
+  padding: 10px 12px !important;
+  background: #fbfbfb !important;
+}
+
+body.printYear .printNotesTitle{
+  font-size: 10.5px !important;
+  letter-spacing: 0.16em !important;
+  margin-bottom: 6px !important;
+}
+
+body.printYear .printNotesBody{
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+  color: #111 !important;
+}
+
+body.printYear .printDow{
+  margin-top: 10px !important;
+  border: 1px solid #b9b9b9 !important;
+  border-bottom: none !important;
+  border-radius: 14px 14px 0 0 !important;
+  overflow: hidden !important;
+}
+
+body.printYear .printDow div{
+  background: #f3f3f3 !important;
+  border-right: 1px solid #d6d6d6 !important;
+  color: #222 !important;
+  font-size: 11px !important;
+  letter-spacing: 0.12em !important;
+}
+
+body.printYear .printDow div:last-child{ border-right: none !important; }
+
+body.printYear .printCal{
+  border: 1px solid #b9b9b9 !important;
+  border-top: none !important;
+  border-radius: 0 0 14px 14px !important;
+  overflow: hidden !important;
+}
+
+body.printYear .printCell{
+  min-height: 94px !important;
+  padding: 8px 9px 7px !important;
+  background: #fff !important;
+}
+
+body.printYear .printCellTop{
+  display: flex !important;
+  align-items: baseline !important;
+  justify-content: flex-start !important;
+  gap: 8px !important;
+  margin-bottom: 2px !important;
+}
+
+body.printYear .printHekaNum{
+  font-size: 14px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.02em !important;
+  color: #111 !important;
+}
+
+body.printYear .printMoon{
+  font-size: 12px !important;
+  opacity: 0.95 !important;
+}
+
+/* Civil date is explicitly NOT bold */
+body.printYear .printCivilRow{
+  font-family: var(--mono) !important;
+  font-size: 11px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.02em !important;
+  color: #2a2a2a !important;
+  margin: 0 0 6px 0 !important;
+  white-space: nowrap !important;
+}
+
+body.printYear .printNote{
+  font-family: var(--sans) !important;
+  font-size: 10.6px !important;
+  line-height: 1.34 !important;
+  color: #111 !important;
+}
+
+/* Optional: soften completely empty cells a touch */
+body.printYear .printCell .printNote:empty{ opacity: 0.85 !important; }
+
+body.printYear .printCell{
+  border-right: 1px solid #d6d6d6 !important;
+  border-bottom: 1px solid #d6d6d6 !important;
+}
+
+body.printYear .printCell{
+  border-right: 1px solid #d6d6d6 !important;
+  border-bottom: 1px solid #d6d6d6 !important;
+}
+
+body.printYear .printCal{
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr) !important;
+}
+
+/* Remove right border on the last column using :nth-of-type with a safer selector is still not perfect.
+   Best solution is to accept the right border and let the outer container hide it. */
+body.printYear .printCal{ overflow: hidden !important; }
+
+/* ===========================
+   MOBILE CALENDAR SPACING FIX
+   Targets the actual month grid (cells + moon glyph)
+=========================== */
+
+/* Give the month grid permission to scroll sideways on tiny screens so 7 columns do not crush into unreadable cells */
+@media (max-width: 520px){
+  .card.gridCard{
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Keep a minimum usable width for the 7-column grid */
+  .dow,
+  .cal{ min-width: 560px; }
+
+  /* Slightly tighten the grid padding and gaps */
+  .dow{ padding: 8px 8px 6px; }
+  .cal{ padding: 8px; gap: 6px; }
+
+  /* Tighten each day cell so content breathes */
+  .day{
+    min-height: 96px;
+    padding: 8px;
+    border-radius: 12px;
+  }
+
+  /* Moon and number spacing inside the cell */
+  .day .moon{
+    top: 6px;
+    right: 6px;
+    font-size: 14px;
+    width: 1.6em;
+  }
+
+  .day .hekaNum{
+    font-size: 16px;
+    padding-right: 2.1em; /* always reserve room for the moon */
+    line-height: 1.05;
+  }
+
+  .day .civil{
+    font-size: 10px;
+    margin-top: 2px;
+  }
+
+  /* Tags and snippet take less vertical space */
+  .day .tags{
+    margin-top: 6px;
+    gap: 5px;
+  }
+
+  .tag{
+    font-size: 9.5px;
+    padding: 3px 6px;
+  }
+
+  .day .snippet{
+    margin-top: 6px;
+    padding-top: 6px;
+    font-size: 10.5px;
+    -webkit-line-clamp: 2;
+  }
+}
+
+/* Even smaller phones: slightly more tightening */
+@media (max-width: 380px){
+  .dow,
+  .cal{ min-width: 540px; }
+
+  .cal{ gap: 5px; }
+  .day{ min-height: 92px; }
+  .day .moon{ font-size: 13px; }
+  .day .hekaNum{ font-size: 15px; }
+}
+
+/* ===========================
+   INFORMATION: LAUNCH + MODAL
+   Revamp: clearer hierarchy, better focus, safer mobile scrolling
+=========================== */
+
+/* Optional: tune these if your global vars differ */
+:root{
+  --info-accent: var(--accent, #caa24a);
+  --info-bg: rgba(9,9,12,0.94);
+  --info-panel: rgba(255,255,255,0.03);
+  --info-panel2: rgba(255,255,255,0.05);
+  --info-border: rgba(255,255,255,0.14);
+  --info-border2: rgba(255,255,255,0.10);
+  --info-text: rgba(255,255,255,0.92);
+  --info-muted: rgba(255,255,255,0.70);
+  --info-muted2: rgba(255,255,255,0.60);
+  --info-radius-lg: 20px;
+  --info-radius-md: 16px;
+  --info-radius-sm: 12px;
+  --info-shadow: 0 30px 90px rgba(0,0,0,0.72);
+  --info-mono: var(--mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+}
+
+/* ===========================
+   INFORMATION: LAUNCH BUTTON
+=========================== */
+
+.info-launch-wrap{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  padding: 16px 10px 4px;
+}
+
+.info-launch{
+  display:flex;
+  align-items:center;
+  gap: 12px;
+  width: min(520px, calc(100% - 12px));
+  border: 1px solid var(--info-border);
+  background: var(--info-panel);
+  color: var(--info-text);
+  border-radius: 18px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.06s ease, box-shadow 0.18s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.info-launch:hover{
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(202,162,74,0.45);
+  box-shadow: 0 18px 60px rgba(0,0,0,0.35);
+}
+
+.info-launch:active{ transform: scale(0.99); }
+
+.info-launch:focus-visible{
+  outline: 2px solid rgba(202,162,74,0.55);
+  outline-offset: 3px;
+}
+
+.info-launch-icon{
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  border: 1px solid rgba(202,162,74,0.35);
+  background: rgba(0,0,0,0.18);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow: 0 0 26px rgba(202,162,74,0.10);
+  flex: 0 0 auto;
+}
+
+.info-eye{
+  width: 22px;
+  height: 22px;
+  opacity: 0.92;
+}
+
+.info-eye-outline{
+  fill: none;
+  stroke: rgba(202,162,74,0.85);
+  stroke-width: 2.2;
+}
+
+.info-eye-iris{
+  fill: rgba(202,162,74,0.18);
+  stroke: rgba(202,162,74,0.55);
+  stroke-width: 1.4;
+}
+
+.info-eye-pupil{ fill: rgba(202,162,74,0.70); }
+
+/* Center the title and subtitle inside the launch pill */
+.info-launch-text{
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: center;
+  align-items: center;
+}
+
+.info-launch-title{
+  font-family: var(--info-mono);
+  letter-spacing: 0.16em;
+  font-size: 12px;
+  text-transform: uppercase;
+  opacity: 0.92;
+}
+
+.info-launch-sub{
+  font-size: 13px;
+  color: rgba(255,255,255,0.70);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ===========================
+   INFORMATION: MODAL SHELL
+=========================== */
+
+.info-modal{
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: none;
+}
+
+.info-modal.is-open{ display:block; }
+
+.info-backdrop{
+  position:absolute;
+  inset:0;
+  background: rgba(0,0,0,0.72);
+  backdrop-filter: blur(6px);
+}
+
+.info-panel{
+  position: relative;
+  width: min(1180px, calc(100vw - 26px));
+  margin: 14px auto;
+  border-radius: var(--info-radius-lg);
+  border: 1px solid var(--info-border);
+  background: var(--info-bg);
+  box-shadow: var(--info-shadow);
+  overflow: hidden;
+  max-height: calc(100vh - 28px);
+  display:flex;
+  flex-direction: column;
+}
+
+/* Header is sticky inside the panel for long content */
+.info-header{
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display:flex;
+  align-items:flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 14px;
+  border-bottom: 1px solid var(--info-border2);
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+}
+
+.info-titleBlock{
+  display:flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.info-kicker{
+  font-family: var(--info-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.62);
+}
+
+.info-h1{
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  color: rgba(255,255,255,0.94);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.info-breadcrumb{
+  font-family: var(--info-mono);
+  font-size: 11px;
+  color: rgba(255,255,255,0.58);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.info-actions{
+  display:flex;
+  align-items:center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.info-btn{
+  border: 1px solid var(--info-border);
+  background: var(--info-panel);
+  color: rgba(255,255,255,0.88);
+  padding: 9px 10px;
+  border-radius: var(--info-radius-sm);
+  cursor: pointer;
+  font-family: var(--info-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.06s ease, opacity 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.info-btn:hover{
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(202,162,74,0.42);
+}
+
+.info-btn:active{ transform: scale(0.99); }
+
+.info-btn:focus-visible{
+  outline: 2px solid rgba(202,162,74,0.55);
+  outline-offset: 2px;
+}
+
+.info-btn.primary{
+  border-color: rgba(202,162,74,0.55);
+  background: rgba(202,162,74,0.10);
+}
+
+.info-btn:disabled{
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* ===========================
+   BODY LAYOUT
+=========================== */
+
+.info-body{
+  flex: 1 1 auto;
+  display:grid;
+  grid-template-columns: 340px 1fr;
+  min-height: 0;
+}
+
+/* Navigation column */
+.info-nav{
+  border-right: 1px solid var(--info-border2);
+  background: rgba(255,255,255,0.02);
+  overflow: auto;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+}
+
+.info-navHead{
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 12px 12px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: rgba(9,9,12,0.86);
+  backdrop-filter: blur(6px);
+}
+
+.info-navTitle{
+  font-family: var(--info-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.62);
+}
+
+.info-navHint{
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: 0.66;
+}
+
+.info-navList{
+  padding: 10px;
+  display:flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+:root{
+  --ch1: #ff3b30; /* red */
+  --ch2: #ff9500; /* orange */
+  --ch3: #ffcc00; /* yellow */
+  --ch4: #34c759; /* green */
+  --ch5: #007aff; /* blue */
+  --ch6: #5856d6; /* indigo */
+  --ch7: #af52de; /* violet */
+}
+
+.info-item{
+  text-align:left;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.12);
+  border-radius: var(--info-radius-md);
+  padding: 12px 12px;
+  cursor:pointer;
+  color: rgba(255,255,255,0.90);
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.06s ease, box-shadow 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.info-item:hover{
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.18);
+  box-shadow: 0 14px 40px rgba(0,0,0,0.22);
+}
+
+.info-item:active{ transform: scale(0.995); }
+
+.info-item:focus-visible{
+  outline: 2px solid rgba(202,162,74,0.55);
+  outline-offset: 2px;
+}
+
+.info-item.is-active{
+  border-color: rgba(202,162,74,0.55);
+  background: rgba(202,162,74,0.08);
+}
+
+.info-item.is-active{ box-shadow: 0 18px 55px rgba(0,0,0,0.35); }
+
+.info-itemTop{
+  display:flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.info-itemNum{
+  font-family: var(--info-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.info-itemChip{
+  font-family: var(--info-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.72;
+  border: 1px solid rgba(255,255,255,0.12);
+  padding: 4px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.info-itemTitle{
+  margin-top: 6px;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
+.info-itemHook{
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.45;
+  opacity: 0.72;
+}
+
+/* Chakra rail on the left of each chapter item */
+.info-item{
+  position: relative;
+  overflow: hidden;
+}
+
+.info-item::before{
+  content:"";
+  position:absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  border-radius: 16px 0 0 16px;
+  opacity: 0.90;
+  background: rgba(255,255,255,0.10);
+}
+
+/* Color by chapter id (your buttons have data-id="ch1" etc) */
+.info-item[data-id="ch1"]::before{ background: rgba(255,59,48,0.85); }
+.info-item[data-id="ch2"]::before{ background: rgba(255,149,0,0.85); }
+.info-item[data-id="ch3"]::before{ background: rgba(255,204,0,0.85); }
+.info-item[data-id="ch4"]::before{ background: rgba(52,199,89,0.85); }
+.info-item[data-id="ch5"]::before{ background: rgba(0,122,255,0.85); }
+.info-item[data-id="ch6"]::before{ background: rgba(88,86,214,0.85); }
+.info-item[data-id="ch7"]::before{ background: rgba(175,82,222,0.85); }
+
+/* Main content area */
+.info-main{
+  overflow: auto;
+  min-height: 0;
+  padding: 14px 14px 18px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+  scroll-behavior: smooth;
+}
+
+/* ===========================
+   CONTENT PRIMITIVES
+=========================== */
+
+.info-hero{
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 18px;
+  background: rgba(255,255,255,0.02);
+  padding: 14px 14px;
+}
+
+.info-thesis{
+  font-size: 18px;
+  line-height: 1.45;
+  letter-spacing: 0.02em;
+  color: var(--info-text);
+}
+
+.info-subthesis{
+  margin-top: 8px;
+  color: rgba(255,255,255,0.72);
+  line-height: 1.60;
+}
+
+.info-grid{
+  margin-top: 12px;
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.info-card{
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: var(--info-radius-md);
+  background: rgba(0,0,0,0.14);
+  padding: 12px;
+}
+
+.info-cardTitle{
+  font-family: var(--info-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.70);
+}
+
+.info-cardBody{
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.60;
+  color: rgba(255,255,255,0.86);
+}
+
+.info-gates{
+  margin-top: 12px;
+  display:flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.info-gate{
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: var(--info-radius-md);
+  background: rgba(0,0,0,0.14);
+  overflow: hidden;
+}
+
+.info-gateBtn{
+  width: 100%;
+  text-align: left;
+  padding: 12px 12px;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  color: rgba(255,255,255,0.92);
+  display:flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.info-gateBtn:focus-visible{
+  outline: 2px solid rgba(202,162,74,0.55);
+  outline-offset: -2px;
+}
+
+.info-gateTitle{
+  font-family: var(--info-mono);
+  font-size: 12px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+
+.info-gateTag{
+  font-family: var(--info-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.72;
+  border: 1px solid rgba(255,255,255,0.12);
+  padding: 4px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.info-gateBody{
+  display:none;
+  padding: 0 12px 12px;
+  color: rgba(255,255,255,0.84);
+  line-height: 1.65;
+  font-size: 13px;
+}
+
+.info-gate.is-open .info-gateBody{ display:block; }
+
+.info-gate.is-open{
+  border-color: rgba(202,162,74,0.40);
+  background: rgba(202,162,74,0.06);
+}
+
+/* Better reading defaults inside the info modal */
+.info-main{
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
+}
+
+.info-thesis{
+  font-size: 20px;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  font-weight: 650;
+}
+
+.info-subthesis{
+  font-size: 14px;
+  line-height: 1.75;
+  color: rgba(255,255,255,0.78);
+}
+
+.info-cardBody,
+.info-gateBody{
+  font-size: 14px;
+  line-height: 1.75;
+  color: rgba(255,255,255,0.86);
+}
+
+.info-code{
+  margin-top: 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.22);
+  padding: 10px 10px;
+  overflow:auto;
+  font-family: var(--info-mono);
+  font-size: 12px;
+  line-height: 1.55;
+  color: rgba(255,255,255,0.86);
+}
+
+/* Improve tap accuracy on mobile */
+@media (pointer: coarse){
+  .info-btn{ padding: 11px 12px; }
+  .info-item{ padding: 13px 12px; }
+  .info-gateBtn{ padding: 13px 12px; }
+}
+
+/* ===========================
+   RESPONSIVE
+=========================== */
+
+@media (max-width: 980px){
+  .info-body{ grid-template-columns: 300px 1fr; }
+  .info-grid{ grid-template-columns: 1fr; }
+}
+
+@media (max-width: 760px){
+  .info-panel{
+    width: calc(100vw - 18px);
+    margin: 9px auto;
+    max-height: calc(100vh - 18px);
+    border-radius: 18px;
+  }
+
+  .info-body{ grid-template-columns: 1fr; }
+
+  .info-nav{
+    border-right: 0;
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+    max-height: 240px;
+  }
+
+  .info-header{ padding: 12px 12px; }
+  .info-h1{ font-size: 17px; }
+}
+
+/* keep this OUTSIDE the 760 block */
+@media (max-width: 520px){
+  .info-launch-sub{
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.35;
+    text-align: center;
+  }
+}
+
+/* ===========================
+   INFO CHAPTER ACCENT (4B)
+   Tints content based on active chapter
+=========================== */
+
+#infoModal{ --chapter-accent: var(--info-accent); }
+
+/* Active chapter accent mapping */
+#infoModal[data-chapter="ch1"]{ --chapter-accent: var(--ch1); }
+#infoModal[data-chapter="ch2"]{ --chapter-accent: var(--ch2); }
+#infoModal[data-chapter="ch3"]{ --chapter-accent: var(--ch3); }
+#infoModal[data-chapter="ch4"]{ --chapter-accent: var(--ch4); }
+#infoModal[data-chapter="ch5"]{ --chapter-accent: var(--ch5); }
+#infoModal[data-chapter="ch6"]{ --chapter-accent: var(--ch6); }
+#infoModal[data-chapter="ch7"]{ --chapter-accent: var(--ch7); }
+#infoModal[data-chapter="home"]{ --chapter-accent: var(--info-accent); }
+
+/* Subtle accent bar at the top of each chapter page */
+#infoModal .info-hero::before{
+  content:"";
+  display:block;
+  height: 3px;
+  border-radius: 999px;
+  margin-bottom: 12px;
+  opacity: 0.95;
+  background: linear-gradient(90deg, rgba(255,255,255,0.10), transparent);
+}
+
+/* When accent is set, tint that bar */
+#infoModal[data-chapter] .info-hero::before{
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--chapter-accent) 85%, transparent),
+    transparent
+  );
+}
+
+/* Gates use the chapter tint when open */
+#infoModal .info-gate.is-open{
+  border-color: color-mix(in srgb, var(--chapter-accent) 45%, rgba(255,255,255,0.12));
+  background: color-mix(in srgb, var(--chapter-accent) 10%, rgba(0,0,0,0.18));
+}
+
+/* ===========================
+   REDUCED MOTION
+=========================== */
+
+@media (prefers-reduced-motion: reduce){
+  .info-launch,
+  .info-btn,
+  .info-item{ transition: none; }
+
+  .info-main{ scroll-behavior: auto; }
+}
+
+/* ===========================
+   INFO MODAL: MOBILE SCROLL FIX
+   Drop-in overrides
+=========================== */
+
+/* Let the overlay itself be scroll-safe on mobile, but keep the panel contained */
+.info-modal{
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Backdrop must stay fixed behind everything (mobile Safari likes this) */
+.info-backdrop{ position: fixed; }
+
+/* Use dynamic viewport height on mobile, with a safe fallback */
+.info-panel{
+  height: calc(100vh - 28px);
+  max-height: none;
+}
+
+@supports (height: 100dvh){
+  .info-panel{ height: calc(100dvh - 28px); }
+}
+
+/* These are critical: allow grid and flex children to actually shrink and scroll */
+.info-body{
+  min-height: 0;
+  height: 100%;
+}
+
+.info-nav,
+.info-main{
+  min-height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
+/* Optional: prevent horizontal scroll traps inside the main content */
+.info-main{ overflow-x: hidden; }
+
+/* ===========================
+   SELECTED DAY PANEL TOGGLE
+=========================== */
+
+/* Hide the entire Selected Day card */
+body.panelHidden #selectedDayPanel{ display: none !important; }
+
+/* Make the top area become 1 column when the panel is hidden */
+body.panelHidden .top{ grid-template-columns: 1fr !important; }
+
+/* Dock only appears when the selected day panel is hidden */
+.selectedPanelDock{
+  display: none; /* hidden by default */
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 5;
+}
+
+body.panelHidden .selectedPanelDock{
+  display: block; /* show only when panel is hidden */
+}
+
+/* Make the left top card a positioning context */
+.top > .card:first-child{ position: relative; }
+
+/* Optional: keep button looking consistent */
+.selectedPanelDock .btn{ min-width: 140px; }
+
+/* ===========================
+   MOBILE: SHOW PANEL STRIP (no overlap)
+=========================== */
+
+@media (max-width: 720px){
+  /* When hidden, show the dock as a normal row, not absolute */
+  body.panelHidden .selectedPanelDock{
+    position: static; /* key change */
+    display: flex;
+    justify-content: flex-end; /* keep it on the right */
+    margin-top: 10px; /* space below Information */
+    padding-top: 6px;
+  }
+
+  /* Optional: make the button fit nicely on mobile */
+  body.panelHidden .selectedPanelDock .btn{
+    min-width: 0;
+    width: auto;
+  }
+}
+
+/* Hide "Civil hint" when Civil overlay is off */
+body.civilOff .civilHint{ display: none !important; }
+
+/* ===========================
+   PANEL TOGGLE – RED GLOW STYLE
+=========================== */
+
+/* Base glow style (shared) */
+#notesVisibilityToggle,
+#panelToggleBtn{
+  background: radial-gradient(
+    circle at top left,
+    #ff5a5a,
+    #c41414 55%,
+    #7a0d0d 100%
+  );
+  color: #fff;
+  border: 1px solid rgba(255,90,90,0.55);
+  box-shadow: 0 0 0 rgba(255,90,90,0), 0 0 18px rgba(255,40,40,0.35);
+  transition: box-shadow 0.25s ease, transform 0.15s ease, background 0.25s ease;
+}
+
+/* Optional refinement: Hide Panel is slightly deeper and more assertive */
+#notesVisibilityToggle{
+  background: radial-gradient(
+    circle at top left,
+    #ff6b6b,
+    #b31313 60%,
+    #640909 100%
+  );
+}
+
+/* Subtle breathing glow */
+@keyframes panelGlowPulse{
+  0%{
+    box-shadow: 0 0 10px rgba(255,40,40,0.35), 0 0 22px rgba(255,40,40,0.18);
+  }
+
+  50%{
+    box-shadow: 0 0 18px rgba(255,40,40,0.55), 0 0 36px rgba(255,40,40,0.28);
+  }
+
+  100%{
+    box-shadow: 0 0 10px rgba(255,40,40,0.35), 0 0 22px rgba(255,40,40,0.18);
+  }
+}
+
+#notesVisibilityToggle,
+#panelToggleBtn{
+  animation: panelGlowPulse 3.2s ease-in-out infinite;
+}
+
+/* Hover feedback */
+#notesVisibilityToggle:hover,
+#panelToggleBtn:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 0 26px rgba(255,40,40,0.65), 0 0 48px rgba(255,40,40,0.35);
+}
+
+/* Active (press) feedback */
+#notesVisibilityToggle:active,
+#panelToggleBtn:active{
+  transform: translateY(0);
+  box-shadow: 0 0 14px rgba(255,40,40,0.45);
+}
+
+/* Mobile: soften glow slightly */
+@media (max-width: 520px){
+  #notesVisibilityToggle,
+  #panelToggleBtn{
+    animation-duration: 4s;
+    box-shadow: 0 0 12px rgba(255,40,40,0.35);
+  }
+}
+
+/* Push Hide Panel to the far right inside its controls row */
+#notesVisibilityToggle{ margin-left: auto; }
+
+@media print{
+  /* Only during actual printing do we reveal print hosts */
+  body.printMonth #printMonthBanner{ display: block !important; }
+  body.printYear #printYearPages{ display: block !important; }
+
+  /* Never show the wrong host */
+  body.printMonth #printYearPages{ display: none !important; }
+  body.printYear #printMonthBanner{ display: none !important; }
+
+  /* Hide app UI while printing */
+  body.printYear .wrap{ display: none !important; }
+
+  body.printMonth .top,
+  body.printMonth .meta,
+  body.printMonth .footerHint,
+  body.printMonth #yearModal,
+  body.printMonth .popover,
+  body.printMonth #installBtn,
+  body.printYear .top,
+  body.printYear .meta,
+  body.printYear .footerHint,
+  body.printYear #yearModal,
+  body.printYear .popover,
+  body.printYear #installBtn{
+    display: none !important;
+  }
+}
+
+  </style>
+</head>
+
+<body>
+
+<div id="hekaTitle">The Modern Heka Calendar v1</div>
+
+  <!-- Print containers (only used during print flows) -->
+  <div id="printMonthBanner"></div>
+  <div id="printYearPages"></div>
+
+  <div class="wrap">
+
+    <div class="top">
+      <div class="card">
+        <div class="brand">
+          <div>
+            <div class="title">The Modern Heka Calendar</div>
+            <div class="subtitle" id="subtitleLine">Australia-first pilot • April to March • Harmonic March correction</div>
+
+          </div>
+
+          <div class="controls">
+            <button class="btn" id="installBtn" type="button" style="display:none;">Install</button>
+          </div>
+        </div>
+
+        <div class="controls" style="justify-content:flex-start; margin-top: 8px;">
+          <input class="searchInput" id="searchInput" placeholder="Search: 26/01/2026, January 21, or keyword" />
+          <button class="btn" id="searchBtn" type="button">Search</button>
+          <button class="btn danger" id="clearSearchBtn" type="button" title="Clears search highlights">Clear</button>
+        </div>
+
+<div class="controls modeRow" style="justify-content:flex-start; margin-top: 10px;">
+  <button class="btn primary" id="modeToggle" type="button">Mode: Sync</button>
+  <div class="modeBadge" id="modeBadge">SYNCED</div>
+</div>
+
+        <div class="meta" id="meta"></div>
+
+<!-- INFORMATION: LAUNCH (CENTERED UNDER META PILLS) -->
+<div class="info-launch-wrap info-launch-wrap--lower" aria-label="Information entry">
+  <button id="infoBtn" class="info-launch" type="button"
+    aria-haspopup="dialog"
+    aria-controls="infoModal"
+    aria-label="Open Information">
+
+    <span class="info-launch-icon" aria-hidden="true">
+      <!-- subtle eye glyph, not "occult", just a symbol -->
+      <svg viewBox="0 0 64 64" class="info-eye" aria-hidden="true">
+        <path class="info-eye-outline"
+          d="M32 16C18.2 16 8.3 26.4 5 32c3.3 5.6 13.2 16 27 16s23.7-10.4 27-16c-3.3-5.6-13.2-16-27-16Z"/>
+        <path class="info-eye-iris"
+          d="M32 24.5c-4.1 0-7.5 3.4-7.5 7.5s3.4 7.5 7.5 7.5 7.5-3.4 7.5-7.5-3.4-7.5-7.5-7.5Z"/>
+        <path class="info-eye-pupil"
+          d="M32 28.8c-1.8 0-3.2 1.4-3.2 3.2s1.4 3.2 3.2 3.2 3.2-1.4 3.2-3.2-1.4-3.2-3.2-3.2Z"/>
+      </svg>
+    </span>
+
+    <span class="info-launch-text">
+      <span class="info-launch-title">INFORMATION</span>
+      <span class="info-launch-sub">Foundation, structure, features, modes, history</span>
+    </span>
+  </button>
+</div>
+
+<div class="selectedPanelDock" aria-label="Selected day panel control">
+  <button class="btn" id="panelToggleBtn" type="button"
+      aria-controls="selectedDayPanel" aria-expanded="false">
+  Show Panel
+</button>
+</div>
+      </div>
+
+      <div class="card" id="selectedDayPanel">
+        <div class="panelTitle">Selected Day</div>
+        <div class="sideRow">
+          <div class="kv" id="selectedKv"></div>
+
+          <div class="noteBox">
+            <div class="panelTitle" style="margin:0;">Notes (Day)</div>
+            <textarea id="noteArea" placeholder="Write here. Saved automatically on this device."></textarea>
+            <div class="small" id="noteHint"></div>
+          </div>
+
+          <div class="controls" style="justify-content:flex-start;">
+            <button class="btn" id="exportBtn" type="button">Export</button>
+            <button class="btn" id="importBtn" type="button">Import</button>
+<button class="btn" id="notesVisibilityToggle" type="button">Hide Panel</button>
+            <input id="fileInput" type="file" accept="application/json" style="display:none;" />
+          </div>
+
+          <div class="noteBox">
+            <div class="panelTitle" style="margin:0;">Monthly Notes</div>
+            <textarea id="monthNoteArea" placeholder="Notes for this Heka month. Saved automatically on this device."></textarea>
+            <div class="small" id="monthNoteHint"></div>
+          </div>
+
+          <div class="footerHint">
+            Moon phases are an algorithmic approximation. Public holidays are rule-based and can vary by state practice. Always confirm critical dates.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card gridCard">
+     <div class="monthHeader">
+  <div class="left">
+  <div class="monthName" id="monthName"></div>
+  <div class="monthSub" id="monthSub"></div>
+  <div class="hingeHint" id="hingeHint"></div>
+</div>
+
+  <div class="right">
+    <div class="navLock">
+      <button class="btn" id="prevMonthTop" type="button">Prev</button>
+      <button class="btn" id="nextMonthTop" type="button">Next</button>
+    </div>
+
+    <div class="miniControls">
+      <select class="select" id="stateFilterTop" title="Holiday filter">
+        <option value="NONE">Holidays: NONE</option>
+        <option value="ALL">Holidays: ALL</option>
+        <option value="NSW">Holidays: NSW</option>
+        <option value="VIC">Holidays: VIC</option>
+        <option value="QLD">Holidays: QLD</option>
+        <option value="SA">Holidays: SA</option>
+        <option value="WA">Holidays: WA</option>
+        <option value="TAS">Holidays: TAS</option>
+        <option value="NT">Holidays: NT</option>
+        <option value="ACT">Holidays: ACT</option>
+      </select>
+
+      <button class="btn primary" id="goTodayTop" type="button">Today</button>
+      <button class="btn" id="printMonthBtn" type="button">Print Month</button>
+      <button class="btn" id="shareBtn" type="button">Share</button>
+      <button class="btn" id="yearBtn" type="button">Year</button>
+
+<button class="toggleBtn" id="moonMonthToggle" type="button">Moon: On</button>
+<button class="toggleBtn" id="civilToggle" type="button">Civil: On</button>
+    </div>
+
+    <div class="pill pillMonthIndex">
+      <span>Month #</span> <strong id="monthIndex"></strong>
+    </div>
+  </div>
+</div>
+
+      <div class="dow" role="row">
+        <div role="columnheader">Sat</div><div role="columnheader">Sun</div><div role="columnheader">Mon</div><div role="columnheader">Tue</div><div role="columnheader">Wed</div><div role="columnheader">Thu</div><div role="columnheader">Fri</div>
+      </div>
+
+      <div class="cal" id="cal" role="grid" aria-label="Heka calendar month grid"></div>
+    </div>
+
+  </div>
+
+  <!-- Year overview modal -->
+  <div class="modalOverlay" id="yearModal" aria-hidden="true" inert>
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Year overview">
+      <div class="modalHeader">
+        <div class="modalTitle" id="yearModalTitle">Year overview</div>
+        <div class="controls" style="justify-content:flex-end;">
+          <button class="btn" id="yearMoonToggle" type="button">Moon: Off</button>
+<button class="btn" id="yearCivilToggle" type="button">Civil: Off</button>
+          <button class="btn" id="yearPrev" type="button">Prev year</button>
+          <button class="btn" id="yearNext" type="button">Next year</button>
+
+          <button class="btn" id="printYearBtn" type="button" title="Print 13 pages, one month per page">Print Year</button>
+
+          <button class="btn primary" id="yearClose" type="button">Close</button>
+        </div>
+      </div>
+
+      <div class="yearGrid" id="yearGrid"></div>
+    </div>
+  </div>
+
+<!-- INFORMATION MODAL -->
+<div id="infoModal" class="info-modal" aria-hidden="true">
+  <div class="info-backdrop" data-close="true"></div>
+
+  <div class="info-panel" role="dialog" aria-modal="true" aria-labelledby="infoHeaderTitle">
+    <div class="info-header">
+      <div class="info-titleBlock">
+        <div class="info-kicker">INFORMATION</div>
+        <div class="info-h1" id="infoHeaderTitle">The HEKA Calendar</div>
+        <div class="info-breadcrumb" id="infoBreadcrumb">Home</div>
+      </div>
+
+      <div class="info-actions">
+        <button class="info-btn" id="infoBackBtn" type="button" disabled aria-label="Go back">Back</button>
+        <button class="info-btn primary" id="infoHomeBtn" type="button" aria-label="Go to home">Home</button>
+<button class="info-btn" id="infoCloseBtn" type="button" data-close="true" aria-label="Close information">Close</button>
+
+      </div>
+    </div>
+
+    <div class="info-body">
+      <aside class="info-nav" aria-label="Information navigation">
+        <div class="info-navHead">
+          <div class="info-navTitle">Chapters</div>
+          <div class="info-navHint">Start at CH 1, then continue in order.</div>
+        </div>
+        <div class="info-navList" id="infoNavList"></div>
+      </aside>
+
+      <main class="info-main" aria-label="Information content">
+        <div id="infoMain"></div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ===========================
+   CONFIG
+=========================== */
+
+const HEKA_CONFIG = {
+  yearStarts: { month0: 3, day: 1 }, // Apr 1
+  equinoxWindow: { monthName: "March", days: [28, 29, 30] }
+};
+
+const MONTHS = [
+  { name: "April", civilHint: "Apr" },
+  { name: "May", civilHint: "May" },
+  { name: "June", civilHint: "Jun" },
+  { name: "July", civilHint: "Jul" },
+  { name: "August", civilHint: "Aug" },
+  { name: "Hexa", civilHint: "Aug/Sep" },
+  { name: "September", civilHint: "Sep" },
+  { name: "October", civilHint: "Oct" },
+  { name: "November", civilHint: "Nov" },
+  { name: "December", civilHint: "Dec" },
+  { name: "January", civilHint: "Jan" },
+  { name: "February", civilHint: "Feb" },
+  { name: "March", civilHint: "Mar" }
+];
+
+const STATES = ["NSW","VIC","QLD","SA","WA","TAS","NT","ACT"];
+
+/* ===========================
+   UTC SAFE DAY MATH
+=========================== */
+
+function utcNoonMsFromLocalDate(date){
+  return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
+}
+function addDaysUtcNoonMs(utcNoonMs, days){
+  return utcNoonMs + (days * 86400000);
+}
+function localDateFromUtcNoonMs(utcNoonMs){
+  const x = new Date(utcNoonMs);
+  return new Date(x.getFullYear(), x.getMonth(), x.getDate());
+}
+
+function localDateAtUtcNoon(d){
+  return localDateFromUtcNoonMs(utcNoonMsFromLocalDate(d));
+}
+
+/* ===========================
+   HEKA RULES (mode-aware)
+=========================== */
+
+function stripTime(d){
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+/* ---------- MODE: SYNC (your current behavior) ---------- */
+
+function civilStartOfHekaYear_SYNC(heYear){
+  return new Date(heYear, HEKA_CONFIG.yearStarts.month0, HEKA_CONFIG.yearStarts.day);
+}
+
+function hekaYearForCivilDate_SYNC(d){
+  const y = d.getFullYear();
+  const start = new Date(y, HEKA_CONFIG.yearStarts.month0, HEKA_CONFIG.yearStarts.day);
+  return (stripTime(d) >= stripTime(start)) ? y : (y - 1);
+}
+
+function isGregorianLeapYear(y){
+  if (y % 400 === 0) return true;
+  if (y % 100 === 0) return false;
+  return (y % 4 === 0);
+}
+
+function isHekaLeapMarch30_SYNC(heYear){
+  // HEKA year: Apr 1 (heYear) -> Apr 1 (heYear + 1)
+  // Add March 30 only when Feb 29 happens inside that interval.
+  return isGregorianLeapYear(heYear + 1);
+}
+
+function marchLength_SYNC(heYear){
+  return isHekaLeapMarch30_SYNC(heYear) ? 30 : 29;
+}
+
+function daysInHekaMonth_SYNC(heYear, monthIndex){
+  const m = MONTHS[monthIndex].name;
+  if (m === "March") return marchLength_SYNC(heYear);
+  return 28;
+}
+
+function civilFromHeka_SYNC(heYear, monthIndex, day){
+  const start = civilStartOfHekaYear_SYNC(heYear);
+  const startUtcNoon = utcNoonMsFromLocalDate(start);
+
+  let offset = 0;
+  for (let i = 0; i < monthIndex; i++){
+    offset += daysInHekaMonth_SYNC(heYear, i);
+  }
+  offset += (day - 1);
+
+  const outUtcNoon = addDaysUtcNoonMs(startUtcNoon, offset);
+  return localDateFromUtcNoonMs(outUtcNoon);
+}
+
+function hekaFromCivil_SYNC(d){
+  const heYear = hekaYearForCivilDate_SYNC(d);
+  const start = civilStartOfHekaYear_SYNC(heYear);
+
+  const diffDays = Math.floor((utcNoonMsFromLocalDate(d) - utcNoonMsFromLocalDate(start)) / 86400000);
+  if (diffDays < 0) throw new Error("date before heka year start");
+
+  let remaining = diffDays;
+  for (let i = 0; i < MONTHS.length; i++){
+    const dim = daysInHekaMonth_SYNC(heYear, i);
+    if (remaining < dim){
+      return { heYear, monthIndex: i, day: remaining + 1 };
+    }
+    remaining -= dim;
+  }
+  return { heYear, monthIndex: 12, day: marchLength_SYNC(heYear) };
+}
+
+/* ---------- MODE: TRUE (pure HEKA, leap every 4 except 128th) ---------- */
+/*
+  We need an epoch anchor so we can map HEKA <-> Civil.
+  This anchor does NOT mean the calendar stays aligned after that.
+  It simply defines "where true HEKA starts" for this implementation.
+
+  Epoch chosen:
+  Civil: Apr 1, 2025
+  HEKA:  Year 2025, Month April (index 0), Day 1
+*/
+const TRUE_EPOCH = {
+  civil: new Date(2025, 3, 1), // Apr 1, 2025
+  heYear: 2025
+};
+
+function isHekaLeapYear_TRUE(heYear){
+  // Your rule as stated: every 4 years, except the 128th year (and repeats)
+  if (heYear % 128 === 0) return false;
+  return (heYear % 4 === 0);
+}
+
+function marchLength_TRUE(heYear){
+  return isHekaLeapYear_TRUE(heYear) ? 30 : 29;
+}
+
+function daysInHekaMonth_TRUE(heYear, monthIndex){
+  const m = MONTHS[monthIndex].name;
+  if (m === "March") return marchLength_TRUE(heYear);
+  return 28;
+}
+
+function hekaYearLength_TRUE(heYear){
+  // 12 months of 28 days + March 29/30
+  return (28 * 12) + marchLength_TRUE(heYear);
+}
+
+const trueYearStartCache = new Map(); // heYear -> offsetDays from epoch
+
+function daysFromTrueEpochToHekaYearStart(heYear){
+  if (trueYearStartCache.has(heYear)){
+    return trueYearStartCache.get(heYear);
+  }
+
+  let days = 0;
+
+  if (heYear === TRUE_EPOCH.heYear){
+    trueYearStartCache.set(heYear, 0);
+    return 0;
+  }
+
+  if (heYear > TRUE_EPOCH.heYear){
+    for (let y = TRUE_EPOCH.heYear; y < heYear; y++){
+      days += hekaYearLength_TRUE(y);
+    }
+  } else {
+    for (let y = heYear; y < TRUE_EPOCH.heYear; y++){
+      days += hekaYearLength_TRUE(y);
+    }
+    days = -days;
+  }
+
+  trueYearStartCache.set(heYear, days);
+  return days;
+}
+
+function civilStartOfHekaYear_TRUE(heYear){
+  const epochUtcNoon = utcNoonMsFromLocalDate(TRUE_EPOCH.civil);
+  const offsetDays = daysFromTrueEpochToHekaYearStart(heYear);
+  const outUtcNoon = addDaysUtcNoonMs(epochUtcNoon, offsetDays);
+  return localDateFromUtcNoonMs(outUtcNoon);
+}
+
+function civilFromHeka_TRUE(heYear, monthIndex, day){
+  const startCivil = civilStartOfHekaYear_TRUE(heYear);
+  const startUtcNoon = utcNoonMsFromLocalDate(startCivil);
+
+  let offset = 0;
+  for (let i = 0; i < monthIndex; i++){
+    offset += daysInHekaMonth_TRUE(heYear, i);
+  }
+  offset += (day - 1);
+
+  const outUtcNoon = addDaysUtcNoonMs(startUtcNoon, offset);
+  return localDateFromUtcNoonMs(outUtcNoon);
+}
+
+function hekaFromCivil_TRUE(d){
+  const targetUtcNoon = utcNoonMsFromLocalDate(d);
+  const epochUtcNoon = utcNoonMsFromLocalDate(TRUE_EPOCH.civil);
+
+  let diffDays = Math.floor((targetUtcNoon - epochUtcNoon) / 86400000);
+
+  // Find heYear by stepping year lengths
+  let heYear = TRUE_EPOCH.heYear;
+
+  if (diffDays >= 0){
+    while (true){
+      const yLen = hekaYearLength_TRUE(heYear);
+      if (diffDays < yLen) break;
+      diffDays -= yLen;
+      heYear += 1;
+    }
+  } else {
+    while (diffDays < 0){
+      heYear -= 1;
+      const yLen = hekaYearLength_TRUE(heYear);
+      diffDays += yLen;
+    }
+  }
+
+  // Now diffDays is within [0, yearLen)
+  let remaining = diffDays;
+  for (let mi = 0; mi < MONTHS.length; mi++){
+    const dim = daysInHekaMonth_TRUE(heYear, mi);
+    if (remaining < dim){
+      return { heYear, monthIndex: mi, day: remaining + 1 };
+    }
+    remaining -= dim;
+  }
+
+  return { heYear, monthIndex: 12, day: marchLength_TRUE(heYear) };
+}
+
+/* ---------- Unified wrappers used by the app ---------- */
+
+function isTrueMode(){
+  return state.timeMode === "TRUE";
+}
+
+function marchLength(heYear){
+  return isTrueMode() ? marchLength_TRUE(heYear) : marchLength_SYNC(heYear);
+}
+
+function daysInHekaMonth(heYear, monthIndex){
+  return isTrueMode() ? daysInHekaMonth_TRUE(heYear, monthIndex) : daysInHekaMonth_SYNC(heYear, monthIndex);
+}
+
+function civilStartOfHekaYear(heYear){
+  return isTrueMode() ? civilStartOfHekaYear_TRUE(heYear) : civilStartOfHekaYear_SYNC(heYear);
+}
+
+function civilFromHeka(heYear, monthIndex, day){
+  return isTrueMode() ? civilFromHeka_TRUE(heYear, monthIndex, day) : civilFromHeka_SYNC(heYear, monthIndex, day);
+}
+
+function hekaFromCivil(d){
+  return isTrueMode() ? hekaFromCivil_TRUE(d) : hekaFromCivil_SYNC(d);
+}
+
+/* ===========================
+   FORMAT + UTILS
+=========================== */
+
+function fmtCivil(d){
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yy = d.getFullYear();
+  return `${dd}/${mm}/${yy}`;
+}
+
+function fmtCivilShort(d){
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${dd}/${mm}`;
+}
+
+function fmtCivilRangeGauge(start, end){
+  const mon = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const sM = mon[start.getMonth()];
+  const eM = mon[end.getMonth()];
+  const sD = String(start.getDate()).padStart(2,"0");
+  const eD = String(end.getDate()).padStart(2,"0");
+
+  // Same month: "Feb 03 to 28"
+  if (start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth()){
+    return `${sM} ${sD} to ${eD}`;
+  }
+
+  // Cross-month: "Aug 29 to Sep 25"
+  return `${sM} ${sD} to ${eM} ${eD}`;
+}
+
+
+function pad2(n){ return String(n).padStart(2, "0"); }
+
+function dowSatFirst(jsDow){
+  return (jsDow + 1) % 7;
+}
+
+function escapeHtml(s){
+  return String(s)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function debounce(fn, waitMs){
+  let t = null;
+  return (...args) => {
+    if (t) clearTimeout(t);
+    t = setTimeout(() => fn(...args), waitMs);
+  };
+}
+
+function safeJsonParse(s, fallback){
+  try { return JSON.parse(s); } catch { return fallback; }
+}
+function hekaYearDisplayLabel(heYear, monthIndex){
+  // Transitional months: January(10), February(11), March(12)
+  // Show as 2025-2026 to prevent planning mistakes.
+  if (monthIndex >= 10){
+    return `${heYear}-${heYear + 1}`;
+  }
+  return String(heYear);
+}
+
+/* ===========================
+   MOON PHASE (approx) + cache
+=========================== */
+
+const moonCache = new Map();
+/* ===========================
+   ADVANCED MOON PHASE (AU)
+=========================== */
+
+const moonInfoCache = new Map();
+const MOON_HEMISPHERE = "S"; // Australia
+
+function moonInfo(date){
+  const key = date.toISOString().slice(0,10);
+  if (moonInfoCache.has(key)) return moonInfoCache.get(key);
+
+  // Reference new moon: 2000-01-06 18:14 UTC
+  const ref = Date.UTC(2000,0,6,18,14,0);
+  const synodic = 29.530588853;
+
+  const t = Date.UTC(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+    12, 0, 0
+  );
+
+  let age = (t - ref) / 86400000;
+  age = age % synodic;
+  if (age < 0) age += synodic;
+
+  const frac = age / synodic;
+  const phaseAngle = frac * 360;
+  const illumination = (1 - Math.cos(2 * Math.PI * frac)) / 2;
+
+  let phaseName = "New Moon";
+  if (frac < 0.0625) phaseName = "New Moon";
+  else if (frac < 0.1875) phaseName = "Waxing Crescent";
+  else if (frac < 0.3125) phaseName = "First Quarter";
+  else if (frac < 0.4375) phaseName = "Waxing Gibbous";
+  else if (frac < 0.5625) phaseName = "Full Moon";
+  else if (frac < 0.6875) phaseName = "Waning Gibbous";
+  else if (frac < 0.8125) phaseName = "Last Quarter";
+  else if (frac < 0.9375) phaseName = "Waning Crescent";
+  else phaseName = "New Moon";
+
+  const out = {
+    ageDays: age,
+    frac,
+    phaseAngle,
+    illumination,
+    waxing: frac < 0.5,
+    phaseName
+  };
+
+  moonInfoCache.set(key, out);
+  return out;
+}
+
+function moonGlyphFromInfo(info){
+  const base = {
+    "New Moon": "🌑",
+    "Waxing Crescent": "🌒",
+    "First Quarter": "🌓",
+    "Waxing Gibbous": "🌔",
+    "Full Moon": "🌕",
+    "Waning Gibbous": "🌖",
+    "Last Quarter": "🌗",
+    "Waning Crescent": "🌘"
+  };
+
+  let g = base[info.phaseName] || "🌑";
+
+  // Southern Hemisphere visual correction
+  if (MOON_HEMISPHERE === "S"){
+    const flip = {
+      "🌒":"🌘",
+      "🌓":"🌗",
+      "🌔":"🌖",
+      "🌖":"🌔",
+      "🌗":"🌓",
+      "🌘":"🌒"
+    };
+    g = flip[g] || g;
+  }
+
+  return g;
+}
+
+function moonPhaseGlyph(date){
+  return moonGlyphFromInfo(moonInfo(date));
+}
+
+/* ===========================
+   AU PUBLIC HOLIDAYS (rule based)
+=========================== */
+
+function easterSunday(year){
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19*a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2*e + 2*i - h - k) % 7;
+  const m = Math.floor((a + 11*h + 22*l) / 451);
+  const month = Math.floor((h + l - 7*m + 114) / 31) - 1;
+  const day = ((h + l - 7*m + 114) % 31) + 1;
+  return new Date(year, month, day);
+}
+
+function nthWeekdayOfMonth(year, month0, weekday0, n){
+  const first = new Date(year, month0, 1);
+  const firstW = first.getDay();
+  const delta = (weekday0 - firstW + 7) % 7;
+  const day = 1 + delta + (n - 1) * 7;
+  return new Date(year, month0, day);
+}
+
+function lastWeekdayOfMonth(year, month0, weekday0){
+  const last = new Date(year, month0 + 1, 0);
+  const delta = (last.getDay() - weekday0 + 7) % 7;
+  const day = last.getDate() - delta;
+  return new Date(year, month0, day);
+}
+
+function addDays(d, n){
+  const x = new Date(d);
+  x.setDate(x.getDate() + n);
+  return x;
+}
+
+function observedIfWeekend(date){
+  const dow = date.getDay();
+  if (dow === 6) return addDays(date, 2);
+  if (dow === 0) return addDays(date, 1);
+  return null;
+}
+
+function pushHoliday(list, state, date, name){
+  list.push({ state, date: stripTime(date), name });
+}
+
+function holidaysForYear(year){
+  const list = [];
+
+  const eas = easterSunday(year);
+  const goodFri = addDays(eas, -2);
+  const easSat = addDays(eas, -1);
+  const easMon = addDays(eas, 1);
+
+  const ny = new Date(year, 0, 1);
+  const ausDay = new Date(year, 0, 26);
+  const anzac = new Date(year, 3, 25);
+  const xmas = new Date(year, 11, 25);
+  const boxing = new Date(year, 11, 26);
+
+  for (const st of STATES){
+    pushHoliday(list, st, ny, "New Year's Day");
+    const nyObs = observedIfWeekend(ny);
+    if (nyObs) pushHoliday(list, st, nyObs, "New Year's Day (Observed)");
+
+    pushHoliday(list, st, ausDay, "Australia Day");
+    const ausObs = observedIfWeekend(ausDay);
+    if (ausObs) pushHoliday(list, st, ausObs, "Australia Day (Observed)");
+
+    pushHoliday(list, st, goodFri, "Good Friday");
+    pushHoliday(list, st, easSat, "Easter Saturday");
+    pushHoliday(list, st, eas, "Easter Sunday");
+    pushHoliday(list, st, easMon, "Easter Monday");
+
+    pushHoliday(list, st, anzac, "ANZAC Day");
+    const anzObs = observedIfWeekend(anzac);
+    if (anzObs) pushHoliday(list, st, anzObs, "ANZAC Day (Observed)");
+
+    pushHoliday(list, st, xmas, "Christmas Day");
+    pushHoliday(list, st, boxing, "Boxing Day");
+
+    if (xmas.getDay() === 6){
+      pushHoliday(list, st, addDays(xmas, 2), "Christmas Day (Observed)");
+      pushHoliday(list, st, addDays(boxing, 2), "Boxing Day (Observed)");
+    } else if (xmas.getDay() === 0){
+      pushHoliday(list, st, addDays(xmas, 1), "Christmas Day (Observed)");
+      pushHoliday(list, st, addDays(boxing, 1), "Boxing Day (Observed)");
+    } else if (boxing.getDay() === 6){
+      pushHoliday(list, st, addDays(boxing, 2), "Boxing Day (Observed)");
+    } else if (boxing.getDay() === 0){
+      pushHoliday(list, st, addDays(boxing, 1), "Boxing Day (Observed)");
+    }
+
+    if (["NSW","VIC","ACT","TAS","SA"].includes(st)){
+      pushHoliday(list, st, nthWeekdayOfMonth(year, 5, 1, 2), "King's Birthday");
+    } else if (st === "NT"){
+      pushHoliday(list, st, nthWeekdayOfMonth(year, 4, 1, 1), "King's Birthday");
+    } else if (st === "QLD"){
+      pushHoliday(list, st, nthWeekdayOfMonth(year, 9, 1, 1), "King's Birthday");
+    } else if (st === "WA"){
+      pushHoliday(list, st, lastWeekdayOfMonth(year, 8, 1), "King's Birthday");
+    }
+
+    if (["NSW","ACT","SA"].includes(st)){
+      pushHoliday(list, st, nthWeekdayOfMonth(year, 9, 1, 1), "Labour Day");
+    } else if (st === "QLD"){
+      pushHoliday(list, st, nthWeekdayOfMonth(year, 4, 1, 1), "Labour Day");
+    } else if (["VIC","TAS"].includes(st)){
+      pushHoliday(list, st, nthWeekdayOfMonth(year, 2, 1, 2), "Labour Day");
+    } else if (st === "WA"){
+      pushHoliday(list, st, nthWeekdayOfMonth(year, 2, 1, 1), "Labour Day");
+    } else if (st === "NT"){
+      pushHoliday(list, st, nthWeekdayOfMonth(year, 4, 1, 1), "May Day (Labour Day)");
+    }
+
+    if (st === "VIC"){
+      pushHoliday(list, st, nthWeekdayOfMonth(year, 10, 2, 1), "Melbourne Cup (Metro)");
+    }
+  }
+
+  const uniq = new Map();
+  for (const h of list){
+    const k = `${h.state}|${h.date.toISOString().slice(0,10)}|${h.name}`;
+    if (!uniq.has(k)) uniq.set(k, h);
+  }
+  return Array.from(uniq.values());
+}
+
+function holidayMapForYear(year){
+  const hols = holidaysForYear(year);
+  const map = new Map();
+  for (const h of hols){
+    const key = h.date.toISOString().slice(0,10);
+    const label = `${h.name} (${h.state})`;
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(label);
+  }
+  for (const [k, arr] of map.entries()){
+    arr.sort();
+    map.set(k, arr);
+  }
+  return map;
+}
+
+/* ===========================
+   POPOVER
+=========================== */
+
+let activePopover = null;
+
+function closePopover(){
+  if (activePopover){
+    activePopover.remove();
+    activePopover = null;
+  }
+}
+
+function onWindowClickClose(e){
+  if (!activePopover) return;
+  if (activePopover.contains(e.target)) return;
+  closePopover();
+  window.removeEventListener("click", onWindowClickClose, { capture: true });
+}
+
+function openPopoverAt(x, y, title, items, extraRowHtml = ""){
+  closePopover();
+
+  const pop = document.createElement("div");
+  pop.className = "popover";
+  pop.innerHTML = `
+    <div class="popoverTitle">
+      <div>${escapeHtml(title)}</div>
+      <button type="button" class="popoverClose">Close</button>
+    </div>
+    ${extraRowHtml}
+    <ol class="popoverList">
+      ${items.map(i => `<li>${escapeHtml(i)}</li>`).join("")}
+    </ol>
+  `;
+
+  document.body.appendChild(pop);
+
+  const rect = pop.getBoundingClientRect();
+  let px = x + 10;
+  let py = y + 10;
+
+  const pad = 12;
+  if (px + rect.width > window.innerWidth - pad) px = window.innerWidth - rect.width - pad;
+  if (py + rect.height > window.innerHeight - pad) py = window.innerHeight - rect.height - pad;
+  if (px < pad) px = pad;
+  if (py < pad) py = pad;
+
+  pop.style.left = `${px}px`;
+  pop.style.top = `${py}px`;
+
+  pop.querySelector(".popoverClose").addEventListener("click", closePopover);
+
+  setTimeout(() => {
+    window.addEventListener("click", onWindowClickClose, { capture: true });
+  }, 0);
+
+  activePopover = pop;
+}
+
+/* ===========================
+   UI STATE (single source of truth)
+=========================== */
+
+const state = {
+  viewHekaYear: null,
+  viewMonthIndex: null,
+  selected: null,
+
+  holidayMap: null,
+  holidayState: "NSW",
+
+  searchHighlights: new Set(),
+
+  yearModalYear: null,
+  showMoonInYear: false,
+  showCivilMonth: true,
+  showMoonMonth: true,
+  showCivilYear: false,
+
+  timeMode: (localStorage.getItem("heka.timeMode") || "SYNC")
+};
+
+/* ===========================
+   MODE LABELS
+=========================== */
+
+function refreshModeLabels(){
+  const isTrue = (state.timeMode === "TRUE");
+
+  document.body.classList.toggle("modeTrue", isTrue);
+
+  const btn = document.getElementById("modeToggle");
+  if (btn){
+    btn.textContent = isTrue ? "Mode: True" : "Mode: Sync";
+    btn.classList.toggle("primary", true);
+  }
+
+  const badge = document.getElementById("modeBadge");
+  if (badge){
+    badge.textContent = isTrue ? "TRUE HEKA" : "SYNCED";
+  }
+
+  const sub = document.getElementById("subtitleLine");
+  if (sub){
+    sub.textContent = isTrue
+      ? "True HEKA timekeeping • Apr to Mar • March correction (4-year, except 128th)"
+      : "Gregorian-synced pilot • Apr to Mar • Harmonic March correction";
+  }
+}
+
+/* ===========================
+   DOM REFERENCES
+=========================== */
+
+const metaEl           = document.getElementById("meta");
+const calEl            = document.getElementById("cal");
+const monthNameEl      = document.getElementById("monthName");
+const monthSubEl       = document.getElementById("monthSub");
+const monthIndexEl     = document.getElementById("monthIndex");
+const hingeHintEl      = document.getElementById("hingeHint");
+
+const selectedKv       = document.getElementById("selectedKv");
+const noteArea         = document.getElementById("noteArea");
+const noteHint         = document.getElementById("noteHint");
+const monthNoteArea    = document.getElementById("monthNoteArea");
+const monthNoteHint    = document.getElementById("monthNoteHint");
+
+const stateFilterTopEl = document.getElementById("stateFilterTop");
+const searchInputEl    = document.getElementById("searchInput");
+
+const moonMonthToggleBtn = document.getElementById("moonMonthToggle");
+const civilToggleBtn     = document.getElementById("civilToggle");
+
+const yearModal       = document.getElementById("yearModal");
+const yearGrid        = document.getElementById("yearGrid");
+const yearModalTitle  = document.getElementById("yearModalTitle");
+const yearCivilToggleBtn = document.getElementById("yearCivilToggle");
+/* === Modal focus memory === */
+let yearModalLastFocus = null;
+
+/* ===========================
+   PILL HELPER
+=========================== */
+
+function pill(label, html){
+  const d = document.createElement("div");
+  d.className = "pill";
+  d.innerHTML = `<span>${escapeHtml(label)}</span> ${html}`;
+  return d;
+}
+
+/* ===========================
+   STORAGE KEYS
+=========================== */
+
+function storageKeyForDay(heYear, monthIndex, day){
+  return `heka.note.${heYear}.${monthIndex + 1}.${day}`;
+}
+
+function storageKeyForMonth(heYear, monthIndex){
+  return `heka.monthnote.${heYear}.${monthIndex + 1}`;
+}
+
+/* ===========================
+   MONTH VIEW TOGGLES
+=========================== */
+
+function applyMonthToggles(){
+  document.body.classList.toggle("hideCivil", !state.showCivilMonth);
+  document.body.classList.toggle("hideMoonMonth", !state.showMoonMonth);
+
+  // NEW: hide the month header "Civil hint" line when civil is off
+  document.body.classList.toggle("civilOff", !state.showCivilMonth);
+
+  if (civilToggleBtn){
+    civilToggleBtn.textContent = state.showCivilMonth ? "Civil: On" : "Civil: Off";
+    civilToggleBtn.classList.toggle("isOff", !state.showCivilMonth);
+  }
+
+  if (moonMonthToggleBtn){
+    moonMonthToggleBtn.textContent = state.showMoonMonth ? "Moon: On" : "Moon: Off";
+    moonMonthToggleBtn.classList.toggle("isOff", !state.showMoonMonth);
+  }
+}
+
+function applyYearToggles(){
+  document.body.classList.toggle("hideMoonYear", !state.showMoonInYear);
+
+  const ym = document.getElementById("yearMoonToggle");
+  if (ym){
+    ym.textContent = state.showMoonInYear ? "Moon: On" : "Moon: Off";
+    ym.classList.toggle("isOff", !state.showMoonInYear);
+  }
+
+  const yc = document.getElementById("yearCivilToggle");
+  if (yc){
+    yc.textContent = state.showCivilYear ? "Civil: On" : "Civil: Off";
+    yc.classList.toggle("isOff", !state.showCivilYear);
+  }
+}
+
+/* ===========================
+   META HEADER
+=========================== */
+
+function setMeta(){
+  if (!metaEl) return;
+
+  // Rebuild from scratch each time (prevents duplication)
+  metaEl.innerHTML = "";
+
+  const now = new Date();
+  const heNow = hekaFromCivil(now);
+
+  // View year and view month (fallback safe)
+  const viewYear = (typeof state.viewHekaYear === "number") ? state.viewHekaYear : heNow.heYear;
+  const viewMonthIndex = (typeof state.viewMonthIndex === "number") ? state.viewMonthIndex : heNow.monthIndex;
+
+  // Civil pill under search bar is controlled by the month civil toggle (your requested behavior)
+  if (state.showCivilMonth){
+    metaEl.appendChild(pill("Civil", `<strong>${fmtCivil(now)}</strong>`));
+  }
+
+  // Live clock stays
+  metaEl.appendChild(pill("Time", `<strong>${pad2(now.getHours())}:${pad2(now.getMinutes())}:${pad2(now.getSeconds())}</strong>`));
+
+  // Year label follows your threshold rule (Jan to Mar show 2025-2026 style)
+
+  // Today in HEKA terms
+  metaEl.appendChild(pill("Today", `<strong>${escapeHtml(MONTHS[heNow.monthIndex].name)} ${heNow.day}</strong>`));
+
+  // March length for the current VIEW year
+  const marchLen = marchLength(viewYear);
+  metaEl.appendChild(pill("March", `<strong>${marchLen} days</strong>`));
+
+}
+
+/* ===========================
+   HOLIDAY MAP (for view year)
+=========================== */
+
+function rebuildHolidayMapForViewYear(){
+  const startCivil = civilStartOfHekaYear(state.viewHekaYear);
+  const endCivil = civilStartOfHekaYear(state.viewHekaYear + 1);
+
+  // Civil years that can appear inside this HEKA year range
+  const yA = startCivil.getFullYear();
+  const yB = endCivil.getFullYear();
+
+  const merged = new Map();
+
+  for (let y = Math.min(yA, yB) - 1; y <= Math.max(yA, yB) + 1; y++){
+    const m = holidayMapForYear(y);
+    for (const [k, v] of m.entries()){
+      if (!merged.has(k)) merged.set(k, v.slice());
+      else merged.set(k, merged.get(k).concat(v).sort());
+    }
+  }
+
+  state.holidayMap = merged;
+}
+
+function holidayLabelsForCivil(civDate){
+  if (state.holidayState === "NONE") return [];
+
+  const key = civDate.toISOString().slice(0, 10);
+  const labels = state.holidayMap?.get(key) || [];
+
+  if (state.holidayState === "ALL") return labels;
+  return labels.filter(l => l.endsWith(`(${state.holidayState})`));
+}
+
+/* ===========================
+   SEGMENT 3A END
+   Next: rendering, selection, notes, search
+=========================== */
+
+/* ===========================
+   VISUAL HELPERS
+=========================== */
+
+function fadeMonth(){
+  if (!calEl) return;
+  calEl.classList.remove("isReady");
+  calEl.classList.add("isFading");
+  requestAnimationFrame(() => {
+    calEl.classList.remove("isFading");
+    calEl.classList.add("isReady");
+  });
+}
+
+function buildDaySnippet(note){
+  const clean = String(note || "").replace(/\s+/g, " ").trim();
+  if (!clean) return "";
+  const preview = clean.length > 140 ? clean.slice(0, 140) + "…" : clean;
+  return `<div class="snippet">${escapeHtml(preview)}</div>`;
+}
+
+/* ===========================
+   SELECTED DAY PANEL: HIDE / SHOW
+=========================== */
+
+function setSelectedDayPanelHidden(isHidden){
+  document.body.classList.toggle("panelHidden", !!isHidden);
+
+  // Dock button (outside panel): only visible when panel is hidden
+  const showBtn = document.getElementById("panelToggleBtn");
+  if (showBtn){
+    showBtn.textContent = "Show Panel";
+    showBtn.style.display = isHidden ? "" : "none";
+    showBtn.setAttribute("aria-pressed", isHidden ? "true" : "false");
+    showBtn.setAttribute("aria-expanded", isHidden ? "false" : "true");
+  }
+
+  // Hide button (inside panel): only visible when panel is shown
+  const hideBtn = document.getElementById("notesVisibilityToggle");
+  if (hideBtn){
+    hideBtn.textContent = "Hide Panel";
+    hideBtn.style.display = isHidden ? "none" : "";
+    hideBtn.setAttribute("aria-pressed", isHidden ? "true" : "false");
+  }
+
+  localStorage.setItem("heka.panelHidden", isHidden ? "1" : "0");
+}
+
+function initSelectedDayPanelToggle(){
+  const showBtn = document.getElementById("panelToggleBtn");
+  const hideBtn = document.getElementById("notesVisibilityToggle");
+
+  // restore saved preference
+  const savedHidden = localStorage.getItem("heka.panelHidden") === "1";
+  setSelectedDayPanelHidden(savedHidden);
+
+  if (showBtn && showBtn.dataset.bound !== "1"){
+    showBtn.dataset.bound = "1";
+    showBtn.addEventListener("click", () => setSelectedDayPanelHidden(false));
+  }
+
+  if (hideBtn && hideBtn.dataset.bound !== "1"){
+    hideBtn.dataset.bound = "1";
+    hideBtn.addEventListener("click", () => setSelectedDayPanelHidden(true));
+  }
+}
+
+/* ===========================
+   SEARCH HIGHLIGHTS (single definition)
+=========================== */
+
+function clearSearchHighlights(){
+  state.searchHighlights.clear();
+  document.querySelectorAll(".day").forEach(el => { el.style.boxShadow = ""; });
+}
+
+function applySearchHighlights(){
+  document.querySelectorAll(".day").forEach(el => { el.style.boxShadow = ""; });
+
+  for (const id of state.searchHighlights){
+    const el = document.getElementById(id);
+    if (el){
+      el.style.boxShadow = "0 0 0 3px rgba(85,255,164,0.16), 0 0 0 1px rgba(85,255,164,0.10) inset";
+    }
+  }
+}
+
+/* ===========================
+   SELECTED DAY PANEL
+=========================== */
+
+function setSelected(info, { focusCell = false } = {}){
+  closePopover();
+  state.selected = info;
+
+  document.querySelectorAll(".day.selected").forEach(el => el.classList.remove("selected"));
+
+  const id = `cell-${info.heYear}-${info.monthIndex}-${info.day}`;
+  const cellEl = document.getElementById(id);
+  if (cellEl){
+    cellEl.classList.add("selected");
+    if (focusCell) cellEl.focus({ preventScroll: false });
+  }
+
+  const civ = civilFromHeka(info.heYear, info.monthIndex, info.day);
+  const key = storageKeyForDay(info.heYear, info.monthIndex, info.day);
+  const saved = localStorage.getItem(key) || "";
+
+  const hols = holidayLabelsForCivil(civ);
+  const mi = moonInfo(civ);
+const moonGlyph = moonGlyphFromInfo(mi);
+const moonPct = Math.round(mi.illumination * 100);
+const moonDir = mi.waxing ? "Waxing" : "Waning";
+
+if (selectedKv){
+  selectedKv.innerHTML = "";
+  selectedKv.appendChild(pill("Calendar", `<strong>${MONTHS[info.monthIndex].name} ${info.day}</strong>`));
+
+  if (state.showCivilMonth){
+    selectedKv.appendChild(pill("Civil", `<strong>${fmtCivil(civ)}</strong>`));
+  }
+
+    if (state.showMoonMonth){
+    selectedKv.appendChild(
+      pill(
+        "Moon",
+        `<strong>${moonGlyph}</strong> <span style="opacity:.85;">${moonDir} • ${mi.phaseName} • ${moonPct}% • ${mi.ageDays.toFixed(1)}d</span>`
+      )
+    );
+  }
+
+  if (state.holidayState !== "NONE"){
+  selectedKv.appendChild(pill("Holidays", `<strong>${hols.length}</strong>`));
+}
+
+  if (noteArea) noteArea.value = saved;
+  if (noteHint) noteHint.textContent = `Saved as: ${key}`;
+
+  localStorage.setItem("heka.lastSelected", JSON.stringify(info));
+
+  const mk = storageKeyForMonth(info.heYear, info.monthIndex);
+  if (monthNoteArea) monthNoteArea.value = localStorage.getItem(mk) || "";
+  if (monthNoteHint) monthNoteHint.textContent = `Saved as: ${mk}`;
+}
+
+}
+
+function updateNoteTagAndSnippetForSelectedDay(){
+  if (!state.selected) return;
+
+  const { heYear, monthIndex, day } = state.selected;
+  const cell = document.getElementById(`cell-${heYear}-${monthIndex}-${day}`);
+  if (!cell) return;
+
+  const key = storageKeyForDay(heYear, monthIndex, day);
+  const note = localStorage.getItem(key) || "";
+  const hasNote = note.trim().length > 0;
+
+  const tagsWrap = cell.querySelector(".tags");
+  if (tagsWrap){
+    const existing = Array.from(tagsWrap.querySelectorAll(".tag.note"))
+      .find(t => (t.textContent || "").trim().toLowerCase() === "note saved");
+
+    if (hasNote && !existing){
+      const t = document.createElement("div");
+      t.className = "tag note";
+      t.textContent = "Note saved";
+      tagsWrap.appendChild(t);
+    } else if (!hasNote && existing){
+      existing.remove();
+    }
+  }
+
+  const existingSnippet = cell.querySelector(".snippet");
+  if (hasNote){
+    const html = buildDaySnippet(note);
+    if (existingSnippet){
+      existingSnippet.outerHTML = html;
+    } else {
+      cell.insertAdjacentHTML("beforeend", html);
+    }
+  } else if (existingSnippet){
+    existingSnippet.remove();
+  }
+
+  const civ = civilFromHeka(heYear, monthIndex, day);
+  const hols = holidayLabelsForCivil(civ);
+
+  const ariaParts = [];
+  ariaParts.push(`${MONTHS[monthIndex].name} ${day}`);
+  if (state.showCivilMonth) ariaParts.push(`Civil ${fmtCivil(civ)}`);
+  if (hols.length) ariaParts.push(`${hols.length} holiday${hols.length === 1 ? "" : "s"}`);
+  if (hasNote) ariaParts.push("Note saved");
+  cell.setAttribute("aria-label", ariaParts.join(". "));
+}
+
+/* ===========================
+   NOTE SAVE (debounced)
+=========================== */
+
+const saveNoteDebounced = debounce(() => {
+  if (!state.selected || !noteArea) return;
+
+  const k = storageKeyForDay(state.selected.heYear, state.selected.monthIndex, state.selected.day);
+  localStorage.setItem(k, noteArea.value);
+
+  updateNoteTagAndSnippetForSelectedDay();
+
+  if (noteHint) noteHint.textContent = `Saved as: ${k}`;
+}, 250);
+
+const saveMonthNoteDebounced = debounce(() => {
+  if (state.viewHekaYear === null || state.viewMonthIndex === null || !monthNoteArea) return;
+
+  const mk = storageKeyForMonth(state.viewHekaYear, state.viewMonthIndex);
+  localStorage.setItem(mk, monthNoteArea.value);
+
+  if (monthNoteHint) monthNoteHint.textContent = `Saved as: ${mk}`;
+}, 250);
+
+/* ===========================
+   RENDER MONTH
+=========================== */
+
+function renderMonth(){
+  closePopover();
+
+  const heYear = state.viewHekaYear;
+  const mi = state.viewMonthIndex;
+  const month = MONTHS[mi];
+  const dim = daysInHekaMonth(heYear, mi);
+
+  const yearLabel = hekaYearDisplayLabel(heYear, mi);
+const hingeNote =
+  (mi === 0) ? "Year opens Apr 1" :
+  (mi === 10) ? "Hinge crossed: closing arc begins (Jan to Mar)" :
+  (mi === 12) ? `March correction month (${dim} days)` :
+  "";
+
+
+if (monthNameEl) monthNameEl.textContent = month.name;
+if (monthIndexEl) monthIndexEl.textContent = `${mi + 1} / 13`;
+if (monthSubEl){
+  monthSubEl.innerHTML = `Year ${yearLabel} <span class="civilHint">• Civil hint: ${month.civilHint}</span>`;
+}
+if (hingeHintEl){
+  if (mi === 0){
+    hingeHintEl.innerHTML = `<span class="hingeTag open">Year opens Apr 1</span>`;
+  } else if (mi >= 10){
+    hingeHintEl.innerHTML = `<span class="hingeTag close">HINGE: Closing arc (Jan to Mar)</span>`;
+  } else {
+    hingeHintEl.innerHTML = `<span class="hingeTag">Core arc</span>`;
+  }
+}
+
+  if (monthNoteArea && monthNoteHint){
+    const mk = storageKeyForMonth(heYear, mi);
+    monthNoteArea.value = localStorage.getItem(mk) || "";
+    monthNoteHint.textContent = `Saved as: ${mk}`;
+  }
+
+  if (!calEl) return;
+  calEl.innerHTML = "";
+
+  const firstCivil = civilFromHeka(heYear, mi, 1);
+  const startDow = dowSatFirst(firstCivil.getDay());
+
+  for (let i = 0; i < startDow; i++){
+    const blank = document.createElement("div");
+    blank.style.minHeight = "108px";
+    blank.style.border = "1px solid transparent";
+    blank.style.background = "transparent";
+    blank.style.borderRadius = "14px";
+    blank.setAttribute("aria-hidden", "true");
+    calEl.appendChild(blank);
+  }
+
+  const today = stripTime(new Date());
+
+  for (let d = 1; d <= dim; d++){
+    const civ = civilFromHeka(heYear, mi, d);
+    const civKey = civ.toISOString().slice(0,10);
+    const moon = moonPhaseGlyph(civ);
+
+    const noteKey = storageKeyForDay(heYear, mi, d);
+    const note = localStorage.getItem(noteKey) || "";
+    const hasNote = note.trim().length > 0;
+
+    const tags = [];
+
+    const hols = (state.holidayMap && state.holidayMap.get(civKey)) ? holidayLabelsForCivil(civ) : [];
+    for (const h of hols.slice(0, 2)){
+      tags.push({ text: h, cls: "hol", kind: "hol" });
+    }
+    if (hols.length > 2){
+      tags.push({ text: `+${hols.length - 2} more`, cls: "hol", kind: "hol-more" });
+    }
+
+    if (hasNote){
+      tags.push({ text: "Note saved", cls: "note" });
+    }
+
+    const cell = document.createElement("div");
+    cell.className = "day";
+    cell.id = `cell-${heYear}-${mi}-${d}`;
+    cell.dataset.heyear = String(heYear);
+    cell.dataset.mi = String(mi);
+    cell.dataset.day = String(d);
+    cell.tabIndex = 0;
+    cell.setAttribute("role", "gridcell");
+
+    if (+stripTime(civ) === +today) cell.classList.add("today");
+
+    const ariaParts = [];
+    ariaParts.push(`${month.name} ${d}`);
+    if (state.showCivilMonth) ariaParts.push(`Civil ${fmtCivil(civ)}`);
+    if (hols.length) ariaParts.push(`${hols.length} holiday${hols.length === 1 ? "" : "s"}`);
+    if (hasNote) ariaParts.push("Note saved");
+    cell.setAttribute("aria-label", ariaParts.join(". "));
+
+    const snippetHtml = hasNote ? buildDaySnippet(note) : "";
+
+    cell.innerHTML = `
+      <div class="moon">${moon}</div>
+      <div class="hekaNum">${d}</div>
+      ${state.showCivilMonth ? `<div class="civil">${fmtCivilShort(civ)}</div>` : `<div class="civil"></div>`}
+      <div class="tags">${
+        tags.map(t => {
+          const kind = t.kind ? ` data-kind="${t.kind}"` : "";
+          return `<div class="tag ${t.cls}"${kind}>${escapeHtml(t.text)}</div>`;
+        }).join("")
+      }</div>
+      ${snippetHtml}
+    `;
+
+    calEl.appendChild(cell);
+  }
+
+  if (state.selected && state.selected.heYear === heYear && state.selected.monthIndex === mi){
+    const sid = `cell-${heYear}-${mi}-${state.selected.day}`;
+    const sel = document.getElementById(sid);
+    if (sel) sel.classList.add("selected");
+  }
+
+  fadeMonth();
+  applySearchHighlights();
+}
+
+/* ===========================
+   INTERACTION HELPERS
+=========================== */
+
+function selectFromCellEl(cellEl, { focusCell = false } = {}){
+  const heYear = Number(cellEl.dataset.heyear);
+  const mi = Number(cellEl.dataset.mi);
+  const day = Number(cellEl.dataset.day);
+  setSelected({ heYear, monthIndex: mi, day }, { focusCell });
+}
+
+function moveSelectionBy(deltaDays){
+  if (!state.selected) return;
+
+  const currentCivil = civilFromHeka(state.selected.heYear, state.selected.monthIndex, state.selected.day);
+  const targetUtcNoon = addDaysUtcNoonMs(utcNoonMsFromLocalDate(currentCivil), deltaDays);
+  const targetCivil = localDateFromUtcNoonMs(targetUtcNoon);
+  const targetHeka = hekaFromCivil(targetCivil);
+
+  const needsViewChange = (targetHeka.heYear !== state.viewHekaYear) || (targetHeka.monthIndex !== state.viewMonthIndex);
+  if (needsViewChange){
+    state.viewHekaYear = targetHeka.heYear;
+    state.viewMonthIndex = targetHeka.monthIndex;
+    rebuildHolidayMapForViewYear();
+    renderMonth();
+  }
+
+  setSelected({ heYear: targetHeka.heYear, monthIndex: targetHeka.monthIndex, day: targetHeka.day }, { focusCell: true });
+}
+
+/* ===========================
+   MONTH GRID EVENTS
+=========================== */
+
+if (calEl){
+  calEl.addEventListener("click", (e) => {
+    const cell = e.target.closest(".day");
+    if (!cell || !calEl.contains(cell)) return;
+
+    const holTag = e.target.closest(".tag.hol");
+    if (holTag){
+      if (state.holidayState === "NONE") return;
+
+      selectFromCellEl(cell);
+
+      const heYear = Number(cell.dataset.heyear);
+      const mi = Number(cell.dataset.mi);
+      const day = Number(cell.dataset.day);
+      const civ = civilFromHeka(heYear, mi, day);
+      const hols = holidayLabelsForCivil(civ);
+
+      if (hols.length){
+        const title = `${MONTHS[mi].name} ${day}${state.showCivilMonth ? ` (${fmtCivil(civ)})` : ""}`;
+        const extra = `<div class="popoverRow">
+          <span class="chip">Filter: ${escapeHtml(state.holidayState)}</span>
+          <span class="chip">Count: ${hols.length}</span>
+        </div>`;
+        openPopoverAt(e.clientX, e.clientY, "Public holidays", hols, extra);
+      }
+
+      e.preventDefault();
+      return;
+    }
+
+    selectFromCellEl(cell);
+  });
+
+  calEl.addEventListener("keydown", (e) => {
+    const cell = e.target.closest(".day");
+    if (!cell) return;
+
+    const key = e.key;
+
+    if (key === "Enter" || key === " "){
+      e.preventDefault();
+      selectFromCellEl(cell);
+      return;
+    }
+
+    if (key === "ArrowLeft"){
+      e.preventDefault();
+      moveSelectionBy(-1);
+    } else if (key === "ArrowRight"){
+      e.preventDefault();
+      moveSelectionBy(1);
+    } else if (key === "ArrowUp"){
+      e.preventDefault();
+      moveSelectionBy(-7);
+    } else if (key === "ArrowDown"){
+      e.preventDefault();
+      moveSelectionBy(7);
+    } else if (key === "Home"){
+      e.preventDefault();
+      setSelected({ heYear: state.viewHekaYear, monthIndex: state.viewMonthIndex, day: 1 }, { focusCell: true });
+    } else if (key === "End"){
+      e.preventDefault();
+      const dim = daysInHekaMonth(state.viewHekaYear, state.viewMonthIndex);
+      setSelected({ heYear: state.viewHekaYear, monthIndex: state.viewMonthIndex, day: dim }, { focusCell: true });
+    } else if (key === "Escape"){
+      closePopover();
+    }
+  });
+}
+
+/* ===========================
+   SEARCH
+=========================== */
+
+function parseCivilDate(s){
+  const m = String(s).trim().match(/^(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{4})$/);
+  if (!m) return null;
+
+  const dd = Number(m[1]);
+  const mm = Number(m[2]);
+  const yy = Number(m[3]);
+
+  const d = new Date(yy, mm - 1, dd);
+  if (d.getFullYear() !== yy || d.getMonth() !== (mm - 1) || d.getDate() !== dd) return null;
+  return d;
+}
+
+function parseHekaTextDate(s){
+  const txt = String(s).trim().toLowerCase().replace(/\s+/g, " ");
+  const parts = txt.split(" ");
+  if (parts.length < 2) return null;
+
+  const monthName = parts[0];
+  const day = Number(parts[1]);
+  if (!Number.isFinite(day) || day < 1 || day > 30) return null;
+
+  const mi = MONTHS.findIndex(m => m.name.toLowerCase() === monthName);
+  if (mi < 0) return null;
+
+  const heYear = state.viewHekaYear;
+  const dim = daysInHekaMonth(heYear, mi);
+  if (day > dim) return null;
+
+  return { heYear, monthIndex: mi, day };
+}
+
+/* HEKA numeric date: dd/mm/yyyy where mm is Jan=01..Dec=12 and yyyy is HEKA YEAR */
+function parseHekaNumericCivilMonthDate(s){
+  const m = String(s).trim().match(/^(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{4})$/);
+  if (!m) return null;
+
+  const day = Number(m[1]);
+  const civilMonthNum = Number(m[2]); // 1..12 where 1 = January
+  const heYear = Number(m[3]);        // HEKA year
+
+  if (!Number.isFinite(day) || !Number.isFinite(civilMonthNum) || !Number.isFinite(heYear)) return null;
+  if (civilMonthNum < 1 || civilMonthNum > 12) return null;
+
+  const civilMonthNames = [
+    "January","February","March","April","May","June",
+    "July","August","September","October","November","December"
+  ];
+
+  const targetName = civilMonthNames[civilMonthNum - 1];
+  const monthIndex = MONTHS.findIndex(x => x.name === targetName);
+  if (monthIndex < 0) return null;
+
+  const dim = daysInHekaMonth(heYear, monthIndex);
+  if (day < 1 || day > dim) return null;
+
+  return { heYear, monthIndex, day };
+}
+
+function jumpToHekaDate(heYear, monthIndex, day, { focusCell = true } = {}){
+  state.viewHekaYear = heYear;
+  state.viewMonthIndex = monthIndex;
+  rebuildHolidayMapForViewYear();
+  renderMonth();
+  setSelected({ heYear, monthIndex, day }, { focusCell });
+}
+
+function runSearch(){
+  closePopover();
+  clearSearchHighlights();
+
+  const q = String(searchInputEl && searchInputEl.value ? searchInputEl.value : "").trim();
+  if (!q){
+    openPopoverAt(
+      window.innerWidth / 2,
+      90,
+      "Search",
+      ["Type a Heka date (dd/mm/yyyy or Month day), or a civil date with prefix: c 31/01/2028"],
+      ""
+    );
+    return;
+  }
+
+  // HEKA numeric date, with civil month numbering (01 = January)
+  const hekaNum = parseHekaNumericCivilMonthDate(q);
+  if (hekaNum){
+    jumpToHekaDate(hekaNum.heYear, hekaNum.monthIndex, hekaNum.day, { focusCell: true });
+
+    state.searchHighlights.clear();
+    state.searchHighlights.add(`cell-${hekaNum.heYear}-${hekaNum.monthIndex}-${hekaNum.day}`);
+    applySearchHighlights();
+    return;
+  }
+
+  // Civil date is still available, but must be explicit: "c 26/01/2028" or "civil 26/01/2028"
+  const qLower = q.toLowerCase();
+  const civilInput =
+    qLower.startsWith("c ") ? q.slice(2).trim() :
+    qLower.startsWith("civil ") ? q.slice(6).trim() :
+    null;
+
+  if (civilInput){
+    const civil = parseCivilDate(civilInput);
+    if (civil){
+      const stableCivil = localDateAtUtcNoon(civil);
+      const he = hekaFromCivil(stableCivil);
+
+      jumpToHekaDate(he.heYear, he.monthIndex, he.day, { focusCell: true });
+
+      state.searchHighlights.clear();
+      state.searchHighlights.add(`cell-${he.heYear}-${he.monthIndex}-${he.day}`);
+      applySearchHighlights();
+      return;
+    }
+  }
+
+  // Heka text date: "January 21" (uses current view year)
+  const heText = parseHekaTextDate(q);
+  if (heText){
+    jumpToHekaDate(heText.heYear, heText.monthIndex, heText.day, { focusCell: true });
+
+    state.searchHighlights.clear();
+    state.searchHighlights.add(`cell-${heText.heYear}-${heText.monthIndex}-${heText.day}`);
+    applySearchHighlights();
+    return;
+  }
+
+  // Keyword search in stored notes
+  const results = [];
+  const needle = q.toLowerCase();
+
+  for (let i = 0; i < localStorage.length; i++){
+    const k = localStorage.key(i);
+    if (!k) continue;
+    if (!k.startsWith("heka.note.") && !k.startsWith("heka.monthnote.")) continue;
+
+    const v = localStorage.getItem(k) || "";
+    if (!v) continue;
+
+    if (v.toLowerCase().includes(needle)){
+      results.push(k);
+    }
+  }
+
+  results.sort();
+  const shown = results.slice(0, 30);
+
+  const extra = `<div class="popoverRow">
+    <span class="chip">Matches: ${results.length}</span>
+    <span class="chip">Showing: ${shown.length}${results.length > shown.length ? "+" : ""}</span>
+  </div>`;
+
+  if (!shown.length){
+    openPopoverAt(window.innerWidth / 2, 90, "Search results", ["No matches found."], extra);
+    return;
+  }
+
+  openPopoverAt(window.innerWidth / 2, 90, "Search results", shown, extra);
+
+  const pop = document.querySelector(".popover");
+  const lis = pop ? pop.querySelectorAll(".popoverList li") : null;
+
+  shown.forEach((k, idx) => {
+    const m = k.match(/^heka\.note\.(\d+)\.(\d+)\.(\d+)$/);
+    if (!m) return;
+
+    const heYear = Number(m[1]);
+    const mi = Number(m[2]) - 1;
+    const day = Number(m[3]);
+
+    state.searchHighlights.add(`cell-${heYear}-${mi}-${day}`);
+
+    if (lis && lis[idx]){
+      lis[idx].style.cursor = "pointer";
+      lis[idx].title = "Click to jump";
+      lis[idx].addEventListener("click", () => {
+        closePopover();
+        jumpToHekaDate(heYear, mi, day, { focusCell: true });
+        clearSearchHighlights();
+        state.searchHighlights.add(`cell-${heYear}-${mi}-${day}`);
+        applySearchHighlights();
+      });
+    }
+  });
+
+  applySearchHighlights();
+}
+
+/* ===========================
+   MONTH NAVIGATION
+=========================== */
+
+function goPrevMonth(){
+  const mi = state.viewMonthIndex - 1;
+  if (mi < 0){
+    state.viewHekaYear -= 1;
+    state.viewMonthIndex = MONTHS.length - 1;
+  } else {
+    state.viewMonthIndex = mi;
+  }
+  rebuildHolidayMapForViewYear();
+  renderMonth();
+  if (state.selected) setSelected(state.selected);
+}
+
+function goNextMonth(){
+  const mi = state.viewMonthIndex + 1;
+  if (mi >= MONTHS.length){
+    state.viewHekaYear += 1;
+    state.viewMonthIndex = 0;
+  } else {
+    state.viewMonthIndex = mi;
+  }
+  rebuildHolidayMapForViewYear();
+  renderMonth();
+  if (state.selected) setSelected(state.selected);
+}
+
+function goToday(){
+  const now = new Date();
+  const he = hekaFromCivil(now);
+  jumpToHekaDate(he.heYear, he.monthIndex, he.day, { focusCell: true });
+}
+
+/* ===========================
+   INPUT HOOKS (safe; initFinal wires buttons)
+=========================== */
+
+if (noteArea){
+  noteArea.addEventListener("input", () => {
+    if (!state.selected) return;
+    const k = storageKeyForDay(state.selected.heYear, state.selected.monthIndex, state.selected.day);
+    if (noteHint) noteHint.textContent = `Saved as: ${k} (saving...)`;
+    saveNoteDebounced();
+  });
+
+  noteArea.addEventListener("blur", () => {
+    if (!state.selected) return;
+    const k = storageKeyForDay(state.selected.heYear, state.selected.monthIndex, state.selected.day);
+    localStorage.setItem(k, noteArea.value);
+    updateNoteTagAndSnippetForSelectedDay();
+    if (noteHint) noteHint.textContent = `Saved as: ${k}`;
+  });
+}
+
+if (monthNoteArea){
+  monthNoteArea.addEventListener("input", () => {
+    const mk = storageKeyForMonth(state.viewHekaYear, state.viewMonthIndex);
+    if (monthNoteHint) monthNoteHint.textContent = `Saved as: ${mk} (saving...)`;
+    saveMonthNoteDebounced();
+  });
+
+  monthNoteArea.addEventListener("blur", () => {
+    const mk = storageKeyForMonth(state.viewHekaYear, state.viewMonthIndex);
+    localStorage.setItem(mk, monthNoteArea.value);
+    if (monthNoteHint) monthNoteHint.textContent = `Saved as: ${mk}`;
+  });
+}
+
+/* ===========================
+   YEAR GRID EVENT DELEGATION (FAST)
+=========================== */
+
+function setupYearGridDelegation(){
+  if (!yearGrid) return;
+
+  // Prevent double binding if init runs twice in odd environments
+  if (yearGrid.dataset.bound === "1") return;
+  yearGrid.dataset.bound = "1";
+
+  yearGrid.addEventListener("click", (e) => {
+    const cell = e.target.closest(".miniCell");
+    if (!cell || !yearGrid.contains(cell)) return;
+
+    const heYear = Number(cell.dataset.heyear);
+    const mi = Number(cell.dataset.mi);
+    const d = Number(cell.dataset.day);
+
+    if (!Number.isFinite(heYear) || !Number.isFinite(mi) || !Number.isFinite(d)) return;
+
+    closeYearModal();
+    jumpToHekaDate(heYear, mi, d, { focusCell: true });
+  });
+}
+
+/* ===========================
+   YEAR OVERVIEW MODAL
+=========================== */
+
+function openYearModal(heYear){
+  state.yearModalYear = heYear;
+
+  // 1) Store what was focused before opening the modal
+  yearModalLastFocus = document.activeElement;
+
+  if (yearModalTitle){
+    yearModalTitle.textContent = `Year overview • ${heYear}-${heYear + 1}`;
+  }
+
+  if (yearModal){
+    yearModal.classList.add("open");
+    yearModal.setAttribute("aria-hidden", "false");
+
+    // 2) Make sure the modal is not inert while open
+    yearModal.inert = false;
+  }
+
+  document.body.classList.add("modalOpen");
+  applyYearToggles();
+  renderYearGrid(heYear);
+
+  // 3) Move focus into the modal (prevents the warning later)
+  requestAnimationFrame(() => {
+    const closeBtn = document.getElementById("yearClose");
+    if (closeBtn && closeBtn.focus) closeBtn.focus();
+  });
+}
+
+function closeYearModal(){
+  const fallback = document.getElementById("yearBtn");
+
+  // Move focus OUT of the modal FIRST, but only if the target is not inside the modal
+  if (yearModalLastFocus && yearModalLastFocus.focus){
+    const isInside = yearModal && yearModal.contains(yearModalLastFocus);
+    if (!isInside) yearModalLastFocus.focus();
+    else if (fallback && fallback.focus) fallback.focus();
+  } else {
+    if (fallback && fallback.focus) fallback.focus();
+  }
+
+  // Now hide modal
+  if (yearModal){
+    yearModal.classList.remove("open");
+    yearModal.setAttribute("aria-hidden", "true");
+    yearModal.inert = true;
+  }
+
+  document.body.classList.remove("modalOpen");
+}
+
+function renderYearGrid(heYear){
+  if (!yearGrid) return;
+
+  yearGrid.innerHTML = "";
+
+  const frag = document.createDocumentFragment();
+
+  for (let mi = 0; mi < MONTHS.length; mi++){
+    const dim = daysInHekaMonth(heYear, mi);
+    const month = MONTHS[mi];
+
+    const box = document.createElement("div");
+    box.className = "mini";
+
+    const firstCivil = civilFromHeka(heYear, mi, 1);
+    const startDow = dowSatFirst(firstCivil.getDay());
+
+    box.innerHTML = `
+  <div class="miniHead">
+    <div class="miniName">${escapeHtml(month.name)}</div>
+    ${state.showCivilYear
+      ? `<div class="miniHint">${escapeHtml(fmtCivilRangeGauge(
+            civilFromHeka(heYear, mi, 1),
+            civilFromHeka(heYear, mi, dim)
+          ))}</div>`
+      : `<div class="miniHint"></div>`
+    }
+  </div>
+  <div class="miniDow">
+    <div>Sat</div><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div>
+  </div>
+  <div class="miniCal" id="miniCal-${heYear}-${mi}"></div>
+`;
+
+    frag.appendChild(box);
+
+    // Insert hinge divider after December (mi 9), before January (mi 10)
+    if (mi === 9){
+      const div = document.createElement("div");
+      div.className = "yearDivider";
+      div.innerHTML = `
+        <div class="left">
+          <div class="title">Year hinge</div>
+          <div class="sub">HEKA year runs Apr to Mar. Jan to Mar belong to the closing arc.</div>
+        </div>
+        <div class="badge">New Year begins Apr 1</div>
+      `;
+      frag.appendChild(div);
+    }
+
+    const miniCal = box.querySelector(`#miniCal-${heYear}-${mi}`);
+    if (!miniCal) continue;
+
+    for (let i = 0; i < startDow; i++){
+      const blank = document.createElement("div");
+      blank.className = "miniBlank";
+      miniCal.appendChild(blank);
+    }
+
+    for (let d = 1; d <= dim; d++){
+      const civ = civilFromHeka(heYear, mi, d);
+
+      const cell = document.createElement("div");
+      cell.className = "miniCell";
+      cell.textContent = String(d);
+
+      // Data for delegated click
+      cell.dataset.heyear = String(heYear);
+      cell.dataset.mi = String(mi);
+      cell.dataset.day = String(d);
+
+            if (state.showMoonInYear){
+        const moon = moonPhaseGlyph(civ);
+        cell.classList.add("showMoon");
+        cell.dataset.moon = moon;
+
+        cell.title = state.showCivilYear
+          ? `${MONTHS[mi].name} ${d} • ${fmtCivil(civ)} • ${moon}`
+          : `${MONTHS[mi].name} ${d} • ${moon}`;
+      } else {
+        cell.dataset.moon = "";
+
+        cell.title = state.showCivilYear
+          ? `${MONTHS[mi].name} ${d} • ${fmtCivil(civ)}`
+          : `${MONTHS[mi].name} ${d}`;
+      }
+
+      miniCal.appendChild(cell);
+    }
+  }
+
+  yearGrid.appendChild(frag);
+}
+
+function forcePrintLayoutFlush(){
+  // Force style + layout recalculation (Android print snapshot bug workaround)
+  try { document.documentElement.getBoundingClientRect(); } catch(e) {}
+  try { document.body && document.body.offsetHeight; } catch(e) {}
+}
+
+/* ===========================
+   PRINT (single canonical versions)
+=========================== */
+
+// Global print lock to stop mobile cleanup races
+state.isPrinting = false;
+
+function isPrintMediaActive(){
+  try{
+    return !!(window.matchMedia && window.matchMedia("print").matches);
+  }catch(e){
+    return false;
+  }
+}
+
+function ensurePrintHosts(){
+  let a = document.getElementById("printMonthBanner");
+  if (!a){
+    a = document.createElement("div");
+    a.id = "printMonthBanner";
+    // keep it out of layout and invisible on screen
+    a.style.display = "none";
+    a.style.position = "fixed";
+    a.style.left = "0";
+    a.style.top = "0";
+    a.style.width = "0";
+    a.style.height = "0";
+    a.style.overflow = "hidden";
+    document.body.appendChild(a);
+  }
+
+  let b = document.getElementById("printYearPages");
+  if (!b){
+    b = document.createElement("div");
+    b.id = "printYearPages";
+    b.style.display = "none";
+b.style.position = "absolute";
+b.style.left = "-99999px";
+b.style.top = "0";
+b.style.width = "1px";
+b.style.height = "1px";
+b.style.overflow = "hidden";
+    document.body.appendChild(b);
+  }
+}
+
+function clearPrintHosts(){
+  const a = document.getElementById("printMonthBanner");
+  const b = document.getElementById("printYearPages");
+  if (a) a.innerHTML = "";
+  if (b) b.innerHTML = "";
+}
+
+function printMonthAsShown(){
+  closePopover();
+  ensurePrintHosts();
+  state.isPrinting = true;
+
+  const heYear = state.viewHekaYear;
+  const mi = state.viewMonthIndex;
+
+  // Temporarily change the big month header to include the year (PRINT ONLY)
+  const monthNameOriginal = monthNameEl ? monthNameEl.textContent : null;
+
+  if (monthNameEl){
+    const printYearLabel = hekaYearDisplayLabel(heYear, mi);
+    monthNameEl.textContent = `${MONTHS[mi].name.toUpperCase()} ${printYearLabel}`;
+  }
+
+  const banner = document.getElementById("printMonthBanner");
+  if (banner){
+    const mk = storageKeyForMonth(heYear, mi);
+    const monthNote = localStorage.getItem(mk) || "";
+const bannerEl = document.getElementById("printMonthBanner");
+if (bannerEl) bannerEl.style.display = "block";
+
+const hingeLine =
+  (mi === 0) ? "Year opens on Apr 1" :
+  (mi >= 10) ? "Closing arc (Jan to Mar) of this HEKA year" :
+  "Core arc of the HEKA year";
+
+
+    banner.innerHTML = `
+  <div class="printBannerInner">
+    <div class="printBannerNote">
+      <strong>Month ${mi + 1} Notes</strong><br>
+      <div style="opacity:.75; margin-top:6px;">${escapeHtml(hingeLine)}</div>
+      ${monthNote.trim() ? escapeHtml(monthNote).replaceAll("\n","<br>") : ""}
+    </div>
+  </div>
+`;
+  }
+
+  document.body.classList.remove("printYear");
+  document.body.classList.add("printMonth");
+
+  // Cleanup that works even when user cancels Chrome print dialog
+  let cleaned = false;
+
+  const mql = window.matchMedia ? window.matchMedia("print") : null;
+
+  const doCleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
+    state.isPrinting = false;
+
+    if (monthNameEl && monthNameOriginal !== null){
+      monthNameEl.textContent = monthNameOriginal;
+    }
+
+const bannerEl = document.getElementById("printMonthBanner");
+if (bannerEl) bannerEl.style.display = "none";
+
+const hostEl = document.getElementById("printYearPages");
+if (hostEl) hostEl.style.display = "none";
+
+    document.body.classList.remove("printMonth");
+    clearPrintHosts();
+
+    window.removeEventListener("afterprint", doCleanup);
+    window.removeEventListener("focus", onFocusCleanup);
+    if (mql) mql.removeEventListener("change", onMqlChange);
+  };
+
+    const onFocusCleanup = () => {
+    // If print preview is active, do not cleanup yet
+    if (mql && mql.matches) return;
+    setTimeout(doCleanup, 150);
+  };
+
+  const onMqlChange = (e) => {
+    if (!e.matches) setTimeout(doCleanup, 50);
+  };
+
+  window.addEventListener("afterprint", doCleanup);
+  window.addEventListener("focus", onFocusCleanup);
+  if (mql) mql.addEventListener("change", onMqlChange);
+
+  // Give Android a beat to apply the print classes and recalc layout
+forcePrintLayoutFlush();
+
+setTimeout(() => {
+  forcePrintLayoutFlush();
+  window.print();
+}, 250);
+
+}
+
+function buildPrintYearPages(heYear){
+  ensurePrintHosts();
+
+  const host = document.getElementById("printYearPages");
+  if (!host) return;
+
+  host.innerHTML = "";
+
+  for (let mi = 0; mi < MONTHS.length; mi++){
+    const dim = daysInHekaMonth(heYear, mi);
+
+    const firstCivil = civilFromHeka(heYear, mi, 1);
+    const startDow = dowSatFirst(firstCivil.getDay());
+
+    const mk = storageKeyForMonth(heYear, mi);
+    const monthNote = (localStorage.getItem(mk) || "").trim();
+
+    const page = document.createElement("div");
+    page.className = "printPage";
+
+   const header = document.createElement("div");
+header.className = "printPageHeader";
+
+const yearLabel = hekaYearDisplayLabel(heYear, mi);
+
+const isOpeningArc = (mi === 0);
+const isClosingArc = (mi >= 10);
+
+const arcLabel =
+  isOpeningArc ? "Opening Arc" :
+  isClosingArc ? "Closing Arc" :
+  "Core Arc";
+
+const arcNote =
+  isOpeningArc ? "Year opens Apr 1" :
+  isClosingArc ? "Closing arc runs Jan to Mar" :
+  "Core arc runs May to Dec";
+
+header.innerHTML = `
+  <div class="printHeaderTop">
+    <div class="printMonthLine">
+      <div class="printMonthName">${escapeHtml(MONTHS[mi].name)}</div>
+      <div class="printYearTag">HEKA YEAR ${escapeHtml(yearLabel)}</div>
+    </div>
+
+    <div class="printArcRow">
+      <span class="printArcPill ${isOpeningArc ? "open" : isClosingArc ? "close" : "core"}">
+        ${escapeHtml(arcLabel)}
+      </span>
+      <span class="printArcNote">${escapeHtml(arcNote)}</span>
+    </div>
+  </div>
+
+  <div class="printNotesBox">
+    <div class="printNotesTitle">Month ${mi + 1} Notes</div>
+    <div class="printNotesBody">
+      ${monthNote
+  ? escapeHtml(monthNote).replaceAll("\n","<br>")
+  : ""
+}
+    </div>
+  </div>
+`;
+
+    const dow = document.createElement("div");
+    dow.className = "printDow";
+    dow.innerHTML = "<div>Sat</div><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div>";
+
+    const cal = document.createElement("div");
+    cal.className = "printCal";
+
+    for (let i = 0; i < startDow; i++){
+      const blank = document.createElement("div");
+      blank.className = "printCell printBlank";
+      blank.innerHTML = "&nbsp;";
+      cal.appendChild(blank);
+    }
+
+    for (let d = 1; d <= dim; d++){
+      const civ = civilFromHeka(heYear, mi, d);
+
+      const k = storageKeyForDay(heYear, mi, d);
+      const dayNote = (localStorage.getItem(k) || "").trim();
+
+            const cell = document.createElement("div");
+      cell.className = "printCell";
+
+      const top = document.createElement("div");
+      top.className = "printCellTop";
+
+      const hn = document.createElement("div");
+      hn.className = "printHekaNum";
+      hn.textContent = String(d);
+      top.appendChild(hn);
+
+      // Moon printing follows the same toggle as month view
+      if (state.showMoonInYear){
+        const m = document.createElement("div");
+        m.className = "printMoon";
+        m.textContent = moonPhaseGlyph(civ);
+        top.appendChild(m);
+      }
+
+      // Civil printing follows the Civil toggle
+let civilRow = null;
+if (state.showCivilYear){
+  civilRow = document.createElement("div");
+  civilRow.className = "printCivilRow";
+  civilRow.textContent = fmtCivilShort(civ);
+}
+
+      const note = document.createElement("div");
+      note.className = "printNote";
+      if (dayNote){
+        const snip = dayNote.length > 320 ? (dayNote.slice(0, 320) + "…" ) : dayNote;
+        note.textContent = snip;
+      } else {
+        note.textContent = "";
+      }
+
+cell.appendChild(top);
+if (civilRow) cell.appendChild(civilRow);
+cell.appendChild(note);
+cal.appendChild(cell);
+
+    }
+
+    page.appendChild(header);
+    page.appendChild(dow);
+    page.appendChild(cal);
+    host.appendChild(page);
+  }
+}
+
+function printYearAs13Pages(){
+  closePopover();
+  ensurePrintHosts();
+  state.isPrinting = true;
+
+  const heYear = (state.yearModalYear ?? state.viewHekaYear);
+
+  try{
+    buildPrintYearPages(heYear);
+  }catch(e){
+    console.error("Print Year build failed:", e);
+    openPopoverAt(window.innerWidth / 2, 90, "Print Year", ["Could not build print pages. Check console for details."], "");
+    return;
+  }
+
+  // Make print host visible for the print dialog
+  const hostEl = document.getElementById("printYearPages");
+  if (hostEl) hostEl.style.display = "block";
+
+  document.body.classList.remove("printMonth");
+  document.body.classList.add("printYear");
+
+  let cleaned = false;
+  const mql = window.matchMedia ? window.matchMedia("print") : null;
+
+  const doCleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
+    state.isPrinting = false;
+
+const hostEl = document.getElementById("printYearPages");
+if (hostEl) hostEl.style.display = "none";
+
+    document.body.classList.remove("printYear");
+    clearPrintHosts();
+
+const bannerEl = document.getElementById("printMonthBanner");
+if (bannerEl) bannerEl.style.display = "none";
+
+    window.removeEventListener("afterprint", doCleanup);
+    window.removeEventListener("focus", onFocusCleanup);
+    if (mql) mql.removeEventListener("change", onMqlChange);
+  };
+
+    const onFocusCleanup = () => {
+    if (mql && mql.matches) return;
+    setTimeout(doCleanup, 150);
+  };
+
+  const onMqlChange = (e) => {
+    if (!e.matches) setTimeout(doCleanup, 50);
+  };
+
+  window.addEventListener("afterprint", doCleanup);
+  window.addEventListener("focus", onFocusCleanup);
+  if (mql) mql.addEventListener("change", onMqlChange);
+
+  forcePrintLayoutFlush();
+
+setTimeout(() => {
+  forcePrintLayoutFlush();
+  window.print();
+}, 250);
+}
+
+/* ===========================
+   EXPORT / IMPORT
+=========================== */
+
+function buildExportObject(){
+  const payload = {
+    schema: "heka.calendar.v1",
+    exportedAt: new Date().toISOString(),
+    holidayState: state.holidayState,
+    showCivilMonth: state.showCivilMonth,
+showCivilYear: state.showCivilYear,
+    showMoonMonth: state.showMoonMonth,
+    lastSelected: safeJsonParse(localStorage.getItem("heka.lastSelected"), null),
+    notes: {},
+    monthNotes: {}
+  };
+
+  for (let i = 0; i < localStorage.length; i++){
+    const k = localStorage.key(i);
+    if (!k) continue;
+
+    if (k.startsWith("heka.note.")){
+      payload.notes[k] = localStorage.getItem(k) || "";
+    } else if (k.startsWith("heka.monthnote.")){
+      payload.monthNotes[k] = localStorage.getItem(k) || "";
+    }
+  }
+  return payload;
+}
+
+function exportAllData(){
+  closePopover();
+  const obj = buildExportObject();
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `heka-calendar-export-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  setTimeout(() => URL.revokeObjectURL(url), 2500);
+}
+
+function importAllDataFromObject(obj){
+  if (!obj || typeof obj !== "object") return;
+
+  if (obj.notes && typeof obj.notes === "object"){
+    for (const [k, v] of Object.entries(obj.notes)){
+      if (k.startsWith("heka.note.")) localStorage.setItem(k, String(v ?? ""));
+    }
+  }
+  if (obj.monthNotes && typeof obj.monthNotes === "object"){
+    for (const [k, v] of Object.entries(obj.monthNotes)){
+      if (k.startsWith("heka.monthnote.")) localStorage.setItem(k, String(v ?? ""));
+    }
+  }
+
+  if (typeof obj.holidayState === "string"){
+    state.holidayState = obj.holidayState;
+    localStorage.setItem("heka.holidayFilter", state.holidayState);
+    if (stateFilterTopEl) stateFilterTopEl.value = state.holidayState;
+  }
+
+if (typeof obj.showCivilMonth === "boolean"){
+  state.showCivilMonth = obj.showCivilMonth;
+  localStorage.setItem("heka.showCivilMonth", String(state.showCivilMonth));
+}
+
+if (typeof obj.showCivilYear === "boolean"){
+  state.showCivilYear = obj.showCivilYear;
+  localStorage.setItem("heka.showCivilYear", String(state.showCivilYear));
+}
+
+  if (typeof obj.showMoonMonth === "boolean"){
+    state.showMoonMonth = obj.showMoonMonth;
+    localStorage.setItem("heka.showMoonMonth", String(state.showMoonMonth));
+  }
+
+  applyMonthToggles();
+  rebuildHolidayMapForViewYear();
+  renderMonth();
+
+  const last = obj.lastSelected || safeJsonParse(localStorage.getItem("heka.lastSelected"), null);
+  if (last && typeof last.heYear === "number" && typeof last.monthIndex === "number" && typeof last.day === "number"){
+    setSelected({ heYear: last.heYear, monthIndex: last.monthIndex, day: last.day });
+  } else {
+    const now = new Date();
+    const he = hekaFromCivil(now);
+    setSelected({ heYear: he.heYear, monthIndex: he.monthIndex, day: he.day });
+  }
+
+  setMeta();
+}
+
+/* ===========================
+   SHARE (URL hash payload)
+=========================== */
+
+function b64UrlEncodeUtf8(str){
+  const b64 = btoa(unescape(encodeURIComponent(str)));
+  return b64.replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+}
+
+function b64UrlDecodeUtf8(b64url){
+  let b64 = String(b64url).replaceAll("-", "+").replaceAll("_", "/");
+  while (b64.length % 4) b64 += "=";
+  return decodeURIComponent(escape(atob(b64)));
+}
+
+function buildSharePayloadObject(){
+  const now = new Date();
+  const he = hekaFromCivil(now);
+
+  const viewYear = (typeof state.viewHekaYear === "number") ? state.viewHekaYear : he.heYear;
+  const viewMonth = (typeof state.viewMonthIndex === "number") ? state.viewMonthIndex : he.monthIndex;
+
+  // Share a clean slate: NO notes, NO month notes.
+  return {
+    schema: "heka.share.v1",
+    sharedAt: new Date().toISOString(),
+
+    // Where to open
+    viewHekaYear: viewYear,
+    viewMonthIndex: viewMonth,
+
+    // Optional: open on the selected day if there is one
+    selected: state.selected ? {
+      heYear: state.selected.heYear,
+      monthIndex: state.selected.monthIndex,
+      day: state.selected.day
+    } : null,
+
+    // Optional: share UI preferences (still clean slate)
+    holidayState: state.holidayState,
+    showCivilMonth: state.showCivilMonth,
+    showMoonMonth: state.showMoonMonth,
+    showCivilYear: state.showCivilYear,
+    showMoonInYear: state.showMoonInYear,
+    timeMode: state.timeMode
+  };
+}
+
+async function shareAsLink(){
+  closePopover();
+
+  const obj = buildSharePayloadObject();
+  const encoded = b64UrlEncodeUtf8(JSON.stringify(obj));
+
+  const base = `${location.origin}${location.pathname}`;
+  const url = `${base}?heka=${encoded}`;
+
+  const canWebShare = !!(navigator.share && typeof navigator.share === "function");
+  if (canWebShare){
+    try{
+      await navigator.share({ title: "Heka Calendar", text: "Shared Heka Calendar link", url });
+      return;
+    }catch{
+      /* fall through */
+    }
+  }
+
+  try{
+    await navigator.clipboard.writeText(url);
+    openPopoverAt(window.innerWidth / 2, 90, "Share", ["Link copied to clipboard."], "");
+  }catch{
+    openPopoverAt(window.innerWidth / 2, 90, "Share", [url], `<div class="popoverRow"><span class="chip">Copy this link</span></div>`);
+  }
+}
+
+function applySharedCleanSlate(obj){
+  if (!obj || typeof obj !== "object") return false;
+  if (obj.schema !== "heka.share.v1") return false;
+
+  // Apply mode first
+  if (obj.timeMode === "SYNC" || obj.timeMode === "TRUE"){
+    state.timeMode = obj.timeMode;
+    localStorage.setItem("heka.timeMode", state.timeMode);
+  }
+
+  // Apply view
+  if (typeof obj.viewHekaYear === "number") state.viewHekaYear = obj.viewHekaYear;
+  if (typeof obj.viewMonthIndex === "number") state.viewMonthIndex = obj.viewMonthIndex;
+
+  // Apply clean UI prefs (optional)
+  if (typeof obj.holidayState === "string"){
+    state.holidayState = obj.holidayState;
+    localStorage.setItem("heka.holidayFilter", state.holidayState);
+    if (stateFilterTopEl) stateFilterTopEl.value = state.holidayState;
+  }
+
+  if (typeof obj.showCivilMonth === "boolean"){
+    state.showCivilMonth = obj.showCivilMonth;
+    localStorage.setItem("heka.showCivilMonth", String(state.showCivilMonth));
+  }
+
+  if (typeof obj.showMoonMonth === "boolean"){
+    state.showMoonMonth = obj.showMoonMonth;
+    localStorage.setItem("heka.showMoonMonth", String(state.showMoonMonth));
+  }
+
+  if (typeof obj.showCivilYear === "boolean"){
+    state.showCivilYear = obj.showCivilYear;
+    localStorage.setItem("heka.showCivilYear", String(state.showCivilYear));
+  }
+
+  if (typeof obj.showMoonInYear === "boolean"){
+    state.showMoonInYear = obj.showMoonInYear;
+    localStorage.setItem("heka.showMoonInYear", String(state.showMoonInYear));
+  }
+
+  applyMonthToggles();
+  applyYearToggles();
+  refreshModeLabels();
+
+  rebuildHolidayMapForViewYear();
+  renderMonth();
+  setMeta();
+
+  // Select a day if provided
+  if (obj.selected && typeof obj.selected === "object"){
+    const s = obj.selected;
+    if (typeof s.heYear === "number" && typeof s.monthIndex === "number" && typeof s.day === "number"){
+      setSelected({ heYear: s.heYear, monthIndex: s.monthIndex, day: s.day }, { focusCell: false });
+    }
+  }
+
+  return true;
+}
+
+function tryLoadFromShareLink(){
+  // NEW: read from query string because shareAsLink uses ?heka=
+  const params = new URLSearchParams(location.search);
+  const encoded = params.get("heka");
+  if (!encoded) return false;
+
+  try{
+    const json = b64UrlDecodeUtf8(encoded);
+    const obj = JSON.parse(json);
+
+    if (applySharedCleanSlate(obj)){
+      return true;
+    }
+
+    openPopoverAt(window.innerWidth / 2, 90, "Shared link", ["This link format is not supported for clean-slate sharing."], "");
+    return false;
+
+  }catch{
+    openPopoverAt(window.innerWidth / 2, 90, "Shared link", ["Could not load shared data from this link."], "");
+    return false;
+  }
+}
+
+/* ===========================
+   PWA SAFE INSTALL (no service worker assumptions)
+=========================== */
+
+let deferredPrompt = null;
+
+function setupPWA(){
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    const btn = document.getElementById("installBtn");
+    if (btn) btn.style.display = "inline-block";
+  });
+
+  const btn = document.getElementById("installBtn");
+  if (btn){
+    btn.addEventListener("click", async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      try{
+        await deferredPrompt.userChoice;
+      }catch{
+        /* ignore */
+      }
+      deferredPrompt = null;
+      btn.style.display = "none";
+    });
+  }
+}
+
+/* ===========================
+   APPLY TOGGLES (single place)
+=========================== */
+
+function toggleTimeMode(){
+  const keepScrollY = window.scrollY;
+
+  // Anchor to the civil day being viewed/selected
+  let anchorCivil = null;
+
+  if (state.selected){
+    anchorCivil = civilFromHeka(
+      state.selected.heYear,
+      state.selected.monthIndex,
+      state.selected.day
+    );
+  } else {
+    anchorCivil = new Date();
+  }
+
+  state.timeMode = (state.timeMode === "TRUE") ? "SYNC" : "TRUE";
+  localStorage.setItem("heka.timeMode", state.timeMode);
+
+  const stableAnchor = localDateAtUtcNoon(anchorCivil);
+  const he = hekaFromCivil(stableAnchor);
+
+  state.viewHekaYear = he.heYear;
+  state.viewMonthIndex = he.monthIndex;
+
+  rebuildHolidayMapForViewYear();
+  refreshModeLabels();
+applyMonthToggles();
+
+  // Hard refresh the grid in the new mode, then reselect
+  renderMonth();
+  setSelected({ heYear: he.heYear, monthIndex: he.monthIndex, day: he.day }, { focusCell: false });
+window.scrollTo(0, keepScrollY);
+
+  setMeta();
+}
+
+/* ===========================
+   NOTES VISIBILITY TOGGLE
+=========================== */
+
+function setupNotesVisibilityToggle(){
+  const KEY = "heka.notesHidden";
+  const btn = document.getElementById("notesVisibilityToggle");
+  if (!btn) return;
+
+  function apply(hidden){
+    document.body.classList.toggle("notesHidden", hidden);
+    btn.textContent = hidden ? "Show Notes" : "Hide Notes";
+    btn.classList.toggle("isOff", hidden);
+  }
+
+  const saved = localStorage.getItem(KEY) === "1";
+  apply(saved);
+
+  btn.addEventListener("click", () => {
+    const nowHidden = !document.body.classList.contains("notesHidden");
+    localStorage.setItem(KEY, nowHidden ? "1" : "0");
+    apply(nowHidden);
+  });
+}
+
+/* ===========================
+   FINAL INIT
+=========================== */
+
+function initFinal(){
+  ensurePrintHosts();
+
+  const loadedShare = tryLoadFromShareLink();
+
+  setupPWA();
+
+  const now = new Date();
+  const he = hekaFromCivil(now);
+
+  if (!loadedShare){
+    state.viewHekaYear = he.heYear;
+    state.viewMonthIndex = he.monthIndex;
+  }
+
+setupYearGridDelegation();
+
+  const savedFilter = localStorage.getItem("heka.holidayFilter");
+  if (!loadedShare && savedFilter && (savedFilter === "ALL" || savedFilter === "NONE" || STATES.includes(savedFilter))){
+    state.holidayState = savedFilter;
+    if (stateFilterTopEl) stateFilterTopEl.value = savedFilter;
+  } else if (!loadedShare) {
+    state.holidayState = (stateFilterTopEl && stateFilterTopEl.value) ? stateFilterTopEl.value : "NSW";
+    if (stateFilterTopEl) stateFilterTopEl.value = state.holidayState;
+  } else {
+    if (stateFilterTopEl) stateFilterTopEl.value = state.holidayState;
+  }
+
+  const savedCivilMonth = localStorage.getItem("heka.showCivilMonth");
+  const savedMoonMonth = localStorage.getItem("heka.showMoonMonth");
+  if (!loadedShare){
+    if (savedCivilMonth !== null) state.showCivilMonth = (savedCivilMonth === "true");
+    if (savedMoonMonth !== null) state.showMoonMonth = (savedMoonMonth === "true");
+  }
+
+const savedCivilYear = localStorage.getItem("heka.showCivilYear");
+if (!loadedShare && savedCivilYear !== null){
+  state.showCivilYear = (savedCivilYear === "true");
+}
+
+const savedMoonYear = localStorage.getItem("heka.showMoonInYear");
+if (!loadedShare && savedMoonYear !== null){
+  state.showMoonInYear = (savedMoonYear === "true");
+}
+
+  rebuildHolidayMapForViewYear();
+  applyMonthToggles();
+refreshModeLabels();
+
+
+  if (!loadedShare){
+    const last = localStorage.getItem("heka.lastSelected");
+    if (last){
+      const parsed = safeJsonParse(last, null);
+      if (parsed && typeof parsed.heYear === "number" && typeof parsed.monthIndex === "number" && typeof parsed.day === "number"){
+        state.selected = { heYear: parsed.heYear, monthIndex: parsed.monthIndex, day: parsed.day };
+      }
+    }
+  }
+
+  if (!state.selected){
+    setSelected({ heYear: he.heYear, monthIndex: he.monthIndex, day: he.day });
+  } else {
+    setSelected(state.selected);
+  }
+
+  setMeta();
+  renderMonth();
+
+  const prevBtn = document.getElementById("prevMonthTop");
+  const nextBtn = document.getElementById("nextMonthTop");
+  const todayBtn = document.getElementById("goTodayTop");
+  if (prevBtn) prevBtn.addEventListener("click", goPrevMonth);
+  if (nextBtn) nextBtn.addEventListener("click", goNextMonth);
+  if (todayBtn) todayBtn.addEventListener("click", goToday);
+
+  if (stateFilterTopEl){
+    stateFilterTopEl.addEventListener("change", () => {
+      state.holidayState = stateFilterTopEl.value;
+      localStorage.setItem("heka.holidayFilter", state.holidayState);
+      setMeta();
+      renderMonth();
+      if (state.selected) setSelected(state.selected);
+    });
+  }
+
+  if (civilToggleBtn){
+  civilToggleBtn.addEventListener("click", () => {
+    state.showCivilMonth = !state.showCivilMonth;
+    localStorage.setItem("heka.showCivilMonth", String(state.showCivilMonth));
+
+    applyMonthToggles();
+
+    // Critical: rebuild DOM that was conditionally rendered
+    renderMonth();
+
+    if (state.selected) setSelected(state.selected);
+    setMeta();
+  });
+}
+
+  if (moonMonthToggleBtn){
+  moonMonthToggleBtn.addEventListener("click", () => {
+    state.showMoonMonth = !state.showMoonMonth;
+    localStorage.setItem("heka.showMoonMonth", String(state.showMoonMonth));
+
+    applyMonthToggles();
+    renderMonth();
+
+    if (state.selected) setSelected(state.selected);
+    setMeta();
+  });
+}
+
+  const searchBtn = document.getElementById("searchBtn");
+  if (searchBtn) searchBtn.addEventListener("click", runSearch);
+
+  if (searchInputEl){
+    searchInputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") runSearch();
+    });
+  }
+
+  const clearBtn = document.getElementById("clearSearchBtn");
+  if (clearBtn){
+    clearBtn.addEventListener("click", () => {
+      if (searchInputEl) searchInputEl.value = "";
+      clearSearchHighlights();
+      closePopover();
+    });
+  }
+
+  const exportBtn = document.getElementById("exportBtn");
+  if (exportBtn) exportBtn.addEventListener("click", exportAllData);
+
+  const fileInput = document.getElementById("fileInput");
+  const importBtn = document.getElementById("importBtn");
+  if (importBtn && fileInput){
+    importBtn.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", async () => {
+      const file = fileInput.files && fileInput.files[0];
+      fileInput.value = "";
+      if (!file) return;
+
+      try{
+        const text = await file.text();
+        const obj = JSON.parse(text);
+        importAllDataFromObject(obj);
+      }catch{
+        openPopoverAt(window.innerWidth / 2, 90, "Import", ["Could not read that file."], "");
+      }
+    });
+  }
+
+  const yearBtn = document.getElementById("yearBtn");
+  if (yearBtn){
+    yearBtn.addEventListener("click", () => {
+      closePopover();
+      openYearModal(state.viewHekaYear);
+    });
+  }
+
+// ===========================
+// TIME MODE BUTTON
+// ===========================
+
+const modeBtn = document.getElementById("modeToggle");
+if (modeBtn){
+  modeBtn.addEventListener("click", toggleTimeMode);
+}
+
+  const yearClose = document.getElementById("yearClose");
+  if (yearClose) yearClose.addEventListener("click", closeYearModal);
+
+  const yearPrev = document.getElementById("yearPrev");
+  if (yearPrev) yearPrev.addEventListener("click", () => openYearModal((state.yearModalYear ?? state.viewHekaYear) - 1));
+
+  const yearNext = document.getElementById("yearNext");
+  if (yearNext) yearNext.addEventListener("click", () => openYearModal((state.yearModalYear ?? state.viewHekaYear) + 1));
+
+  const yearMoonToggle = document.getElementById("yearMoonToggle");
+if (yearMoonToggle){
+  yearMoonToggle.addEventListener("click", () => {
+    state.showMoonInYear = !state.showMoonInYear;
+    localStorage.setItem("heka.showMoonInYear", String(state.showMoonInYear));
+
+    applyYearToggles();
+    renderYearGrid(state.yearModalYear ?? state.viewHekaYear);
+  });
+}
+
+const yearCivilToggle = document.getElementById("yearCivilToggle");
+if (yearCivilToggle){
+  yearCivilToggle.addEventListener("click", () => {
+    state.showCivilYear = !state.showCivilYear;
+    localStorage.setItem("heka.showCivilYear", String(state.showCivilYear));
+
+    applyYearToggles();
+    renderYearGrid(state.yearModalYear ?? state.viewHekaYear);
+  });
+}
+
+  if (yearModal){
+    yearModal.addEventListener("click", (e) => {
+      if (e.target === yearModal) closeYearModal();
+    });
+  }
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && yearModal && yearModal.classList.contains("open")) closeYearModal();
+  });
+
+  /* ===========================
+     YEAR MODAL FOCUS TRAP
+  =========================== */
+  if (yearModal){
+    yearModal.addEventListener("keydown", (e) => {
+      if (e.key !== "Tab") return;
+
+      const focusables = yearModal.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusables.length) return;
+
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+
+      if (e.shiftKey && document.activeElement === first){
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last){
+        e.preventDefault();
+        first.focus();
+      }
+    });
+  }
+
+  const printMonthBtn = document.getElementById("printMonthBtn");
+  if (printMonthBtn) printMonthBtn.addEventListener("click", printMonthAsShown);
+
+  const printYearBtn = document.getElementById("printYearBtn");
+  if (printYearBtn) printYearBtn.addEventListener("click", printYearAs13Pages);
+
+  const shareBtn = document.getElementById("shareBtn");
+  if (shareBtn) shareBtn.addEventListener("click", shareAsLink);
+}
+
+/* ===========================
+   SAFETY: FORCE EXIT PRINT MODE
+   (Fixes Samsung / Android stuck blank calendar)
+=========================== */
+
+function hardResetPrintMode(){
+  // Guard: state may not exist yet in some file viewers
+  if (typeof state !== "object" || !state) return;
+
+  // Do not reset while a print flow is active (mobile print preview is fragile)
+  if (state.isPrinting || isPrintMediaActive()) return;
+
+  document.body.classList.remove("printMonth", "printYear");
+  try { if (typeof clearPrintHosts === "function") clearPrintHosts(); } catch(e) {}
+}
+
+// Reset immediately (BEFORE init)
+hardResetPrintMode();
+
+// Extra safety: some Android browsers don't fire afterprint
+if (window.matchMedia){
+  const mq = window.matchMedia("print");
+  const onMq = (e) => { if (!e.matches) hardResetPrintMode(); };
+
+  if (mq.addEventListener) mq.addEventListener("change", onMq);
+  else if (mq.addListener) mq.addListener(onMq);
+}
+
+// Reset when returning to tab
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) hardResetPrintMode();
+});
+
+// Handles Android back/forward cache + some file viewers
+window.addEventListener("pageshow", () => {
+  hardResetPrintMode();
+});
+
+setInterval(() => {
+  setMeta();
+}, 1000);
+
+/* ===========================
+   CALL INIT (only once)
+=========================== */
+
+// Run init when DOM is definitely ready (Android-friendly)
+window.addEventListener("DOMContentLoaded", () => {
+  initFinal();
+initSelectedDayPanelToggle();
+
+  // Force a render pass in case Samsung skipped first layout
+  try { renderMonth(); } catch(e) {}
+}, { once: true });
+
+/* ===========================
+   INFORMATION: ORIENTATION CHAMBER
+   Seven chapters: Foundation, Structure, Features, Modes, History, Adoption, Human Effect
+=========================== */
+
+(function(){
+  const modal = document.getElementById("infoModal");
+  const btnOpen = document.getElementById("infoBtn");
+  const btnClose = document.getElementById("infoCloseBtn");
+  const btnBack = document.getElementById("infoBackBtn");
+  const btnHome = document.getElementById("infoHomeBtn");
+
+  const navList = document.getElementById("infoNavList");
+  const main = document.getElementById("infoMain");
+
+  const headerTitle = document.getElementById("infoHeaderTitle");
+  const breadcrumb = document.getElementById("infoBreadcrumb");
+
+  if (!modal || !btnOpen || !btnClose || !btnBack || !btnHome || !navList || !main || !headerTitle || !breadcrumb){
+    return;
+  }
+
+  const stack = [];
+  let activeId = "home";
+
+    const chapters = [
+    {
+      id: "home",
+      num: "HOME",
+      chip: "OVERVIEW",
+      title: "The HEKA Calendar",
+      hook: "A readable year structure, with correction made visible.",
+      render: renderHome
+    },
+
+    {
+      id: "ch1",
+      num: "CH 1",
+      chip: "FOUNDATION",
+      title: "What HEKA Is",
+      hook: "A solar year, structured for daily use and long-term trust.",
+      render: () => renderStory({
+        title: "What HEKA Is",
+        lead: "HEKA is a modern calendar system designed to structure a solar year in a way that is readable, stable to use, and honest about correction. It is not a belief system and it does not require civil time to be replaced.",
+        cards: [
+          { h: "Solar honest", b: "Every solar calendar needs correction. HEKA keeps that correction visible and contained rather than scattered or hidden." },
+          { h: "Human readable", b: "HEKA is built to feel consistent as you move through it. The year is shaped as an opening, a stable middle, and a deliberate closure." },
+          { h: "Civil compatible", b: "Civil dates remain available as a reference layer, so HEKA can be used immediately without disrupting commitments." }
+        ],
+        gates: [
+          { t: "A calendar, not a philosophy", tag: "SCOPE", b: "HEKA does not tell you what to celebrate or believe. It is an engineered year layout designed for clarity and usability." },
+          { t: "What HEKA changes", tag: "STRUCTURE", b: "It changes the organisation of months, the placement of correction, and the readability of the year." },
+          { t: "What HEKA does not change", tag: "CLOCK", b: "It does not change the 24 hour clock, the 7 day week, time zones, daylight saving, or the seasons." },
+          { t: "How to read this section", tag: "GUIDE", b: "Start with structure and features first. Mathematics and long-horizon behaviour can be explored later without affecting daily use." }
+        ]
+      })
+    },
+
+    {
+      id: "ch2",
+      num: "CH 2",
+      chip: "STRUCTURE",
+      title: "How HEKA Is Structured",
+      hook: "April opens, March closes, and correction stays at the end.",
+      render: () => renderStory({
+        title: "How HEKA Is Structured",
+        lead: "HEKA structures the year as a coherent arc. The opening begins in April, the middle remains stable, and the year closes through January to March. Correction is concentrated at the closing boundary.",
+        cards: [
+          { h: "13-month layout", b: "HEKA uses thirteen months to create a more even planning rhythm without changing the length of the day or week." },
+          { h: "Three spans", b: "The year is framed as Opening (April), Core (May to December), and Closing (January to March)." },
+          { h: "The March hinge", b: "March is the adaptive closing month. When correction is needed, it happens here rather than disturbing the rest of the year." }
+        ],
+        gates: [
+          { t: "Month order", tag: "LIST", b: "April, May, June, July, August, HEXA, September, October, November, December, January, February, March." },
+          { t: "Year labelling", tag: "FORMAT", b: "Because HEKA runs April through March, it can be written as a range, for example 2026–2027, meaning Apr 1 to Mar 31." },
+          { t: "Week display", tag: "WEEK", b: "The week remains seven days. The calendar view simply displays Saturday as the first visible day of the week." },
+          { t: "Why correction stays in March", tag: "DESIGN", b: "Correction belongs at the closing boundary so the rest of the year stays predictable. HEKA keeps irregularity local rather than scattered." }
+        ]
+      })
+    },
+
+    {
+      id: "ch3",
+      num: "CH 3",
+      chip: "FEATURES",
+      title: "Interface and Features",
+      hook: "HEKA is designed to be used, not studied.",
+      render: () => renderStory({
+        title: "Interface and Features",
+        lead: "The interface is built to let you live inside HEKA while keeping civil references available. Overlays and tools are optional layers that do not change the underlying structure.",
+        cards: [
+          { h: "Civil overlay", b: "See civil dates alongside HEKA to keep appointments, obligations, and public schedules easy to reference." },
+          { h: "Moon phases", b: "A toggleable lunar layer adds natural rhythm signals without changing the calendar itself." },
+          { h: "Notes and printing", b: "Save notes, plan by day or month, and print month or year views for a clean physical reference." }
+        ],
+        gates: [
+          { t: "Civil dates", tag: "OVERLAY", b: "HEKA can be the primary view while civil dates remain visible as a shared reference language." },
+          { t: "Holidays and reference sets", tag: "LAYER", b: "Holiday sets and observances can be toggled on or off. Overlays can differ by user without altering HEKA." },
+          { t: "Notes that persist", tag: "MEMORY", b: "Notes are designed to remain available after closing and reopening, supporting continuity instead of one-time viewing." },
+          { t: "Print modes", tag: "PRINT", b: "Print a single month cleanly or print the full year view for a complete overview." }
+        ]
+      })
+    },
+
+    {
+      id: "ch4",
+      num: "CH 4",
+      chip: "MODES",
+      title: "Solar Alignment and Modes",
+      hook: "Two correction standards, one clear structure.",
+      render: () => renderStory({
+        title: "Solar Alignment and Modes",
+        lead: "HEKA is a solar calendar. It aligns to the Sun’s seasonal cycle and handles correction at the year’s closing boundary. Two modes exist because people have two needs: civil compatibility and pure HEKA correction.",
+        cards: [
+          { h: "Solar target", b: "The goal is stable seasonal alignment over long spans using visible, auditable correction." },
+          { h: "TRUE mode", b: "TRUE follows HEKA’s internal correction law for long-horizon solar integrity." },
+          { h: "SYNC mode", b: "SYNC aligns correction timing to Gregorian leap expectations so everyday coordination stays familiar." }
+        ],
+        gates: [
+          { t: "TRUE mode rule", tag: "RULE", b: "March becomes 30 days every 4th year, except every 128th year when March remains 29 days." },
+          { t: "SYNC mode rule", tag: "CIVIL", b: "March receives the extra day in alignment with Gregorian leap-year timing. The month layout remains HEKA." },
+          { t: "Accuracy snapshot", tag: "DRIFT", b: "Under the fixed tropical-year model used for HEKA drift maths, TRUE mode reduces long-term drift dramatically compared to Gregorian." },
+          { t: "What changes when switching modes", tag: "SWITCH", b: "Only the correction trigger changes. The month order, spans, interface, and week display remain the same." }
+        ]
+      })
+    },
+
+    {
+      id: "ch5",
+      num: "CH 5",
+      chip: "HISTORY",
+      title: "Calendar History and Context",
+      hook: "Gregorian is a successful standard, not a final design.",
+      render: () => renderStory({
+        title: "Calendar History and Context",
+        lead: "Calendars have always been engineered and revised. The modern month system is inherited architecture shaped by reforms, compromises, and long-term patching.",
+        cards: [
+          { h: "Calendars are tools", b: "Every calendar balances astronomy, culture, administration, and planning. No system is neutral." },
+          { h: "Months were edited over time", b: "Month placement and year hinges have shifted historically. The structure reflects accumulated decisions." },
+          { h: "Gregorian is a reform", b: "Gregorian refined leap handling to reduce drift compared to earlier systems. It did not redesign month structure for readability." }
+        ],
+        gates: [
+          { t: "Why months feel irregular", tag: "REALITY", b: "Irregular month lengths are not dictated by nature. They are the result of historic edits and inherited conventions." },
+          { t: "Julian to Gregorian", tag: "REFORM", b: "Gregorian was introduced to correct seasonal drift and slow future drift. It succeeded as a civil standard." },
+          { t: "Why Gregorian is not final", tag: "CONTEXT", b: "A widely used system can still be improved as an interface. Standard does not mean optimal." },
+          { t: "Where HEKA fits", tag: "LINEAGE", b: "HEKA continues the tradition of reform by improving structure and clarity while remaining compatible with civil use." }
+        ]
+      })
+    },
+
+    {
+      id: "ch6",
+      num: "CH 6",
+      chip: "ADOPTION",
+      title: "Adoption and Skeptic Questions",
+      hook: "Use it privately first, coordinate smoothly, expand if it earns trust.",
+      render: () => renderStory({
+        title: "Adoption and Skeptic Questions",
+        lead: "HEKA is built so adoption can begin immediately without requiring institutions to change. It can function as a daily planner with civil references visible at all times.",
+        cards: [
+          { h: "Start without disruption", b: "Use HEKA as the primary view, keep civil dates visible, and begin planning normally." },
+          { h: "SYNC first is common", b: "SYNC is a practical entry point because it behaves like the civil world expects leap behaviour to behave." },
+          { h: "Coordinate easily", b: "Civil references remain the shared language for appointments, legal dates, travel, and obligations." }
+        ],
+        gates: [
+          { t: "Quick start checklist", tag: "START", b: "Enable civil overlay, enable notes, choose SYNC or TRUE, then use HEKA as the main month and year navigation." },
+          { t: "Choosing SYNC vs TRUE", tag: "CHOICE", b: "Choose SYNC for civil familiarity. Choose TRUE for pure HEKA correction and long-horizon integrity." },
+          { t: "Smart skeptic checks", tag: "FAQ", b: "The clock does not change. The week does not change. Time zones do not change. HEKA changes the year layout and correction placement." },
+          { t: "What adoption means", tag: "MEANING", b: "Adoption can mean using HEKA as your planning interface while civil dates remain visible for coordination. Wider adoption only happens if people keep choosing it." }
+        ]
+      })
+    },
+
+    {
+      id: "ch7",
+      num: "CH 7",
+      chip: "HUMAN",
+      title: "The Human Effect of a Calendar",
+      hook: "A calendar shapes how progress feels, not just how days are counted.",
+      render: () => renderStory({
+        title: "The Human Effect of a Calendar",
+        lead: "A calendar is not neutral. It shapes perception, stress, momentum, and how people experience beginnings and endings. HEKA is designed to reduce planning friction and increase structural coherence.",
+        cards: [
+          { h: "Time as interface", b: "People live inside a calendar grid. When the grid is consistent, planning becomes calmer and more reliable." },
+          { h: "Milestones and momentum", b: "Thirteen clean cycles can create more frequent completion points, making progress easier to track." },
+          { h: "Designer influence", b: "The calendar’s structure shapes social rhythm: deadlines, cycles, and the feeling of closure." }
+        ],
+        gates: [
+          { t: "Why 13 can feel lighter", tag: "COGNITION", b: "More consistent segments can reduce cognitive load and make the year feel more navigable without adding time." },
+          { t: "Opening and closing arcs", tag: "ARC", b: "April opens the HEKA year and March closes it. This framing can improve the sense of completion and renewal." },
+          { t: "Saturday-first display", tag: "ANCHOR", b: "The week remains unchanged, but the visible anchor changes. A consistent anchor affects how people interpret the start of a cycle." },
+          { t: "No forced meaning", tag: "CHOICE", b: "HEKA does not demand belief or ritual. Its impact comes from structure and usability, not ideology." }
+        ]
+      })
+    }
+  ];
+
+  function openModal(){
+    modal.classList.add("is-open");
+    modal.setAttribute("aria-hidden", "false");
+    document.body.classList.add("modalOpen");
+
+    if (!activeId) activeId = "home";
+    renderNav();
+    goTo(activeId, { push: false });
+  }
+
+  function closeModal(){
+    modal.classList.remove("is-open");
+    modal.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("modalOpen");
+  }
+
+  function setHeader(title, crumb){
+    headerTitle.textContent = title;
+    breadcrumb.textContent = crumb;
+  }
+
+  function goTo(id, opts){
+    const o = opts || {};
+    const chapter = chapters.find(c => c.id === id);
+    if (!chapter) return;
+
+    if (o.push !== false){
+      stack.push(activeId);
+    }
+
+    activeId = id;
+// Theme hook for CSS (active chapter accent)
+modal.setAttribute("data-chapter", id);
+
+    // Buttons
+    btnBack.disabled = (stack.length === 0);
+
+    // Header
+    if (id === "home"){
+      setHeader("The Heka Calendar", "Home");
+    } else {
+      setHeader(chapter.title, chapter.num);
+    }
+
+    // Render
+    renderNav();
+    chapter.render();
+
+    // Scroll main to top every time a chapter is opened
+    try{ modal.querySelector(".info-main").scrollTop = 0; } catch(e){}
+  }
+
+  function goBack(){
+    const prev = stack.pop();
+    btnBack.disabled = (stack.length === 0);
+    if (prev) goTo(prev, { push: false });
+  }
+
+  function renderNav(){
+    navList.innerHTML = "";
+
+    chapters.forEach(c => {
+      if (c.id === "home") return;
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "info-item" + (c.id === activeId ? " is-active" : "");
+      btn.setAttribute("data-id", c.id);
+
+      btn.innerHTML = `
+        <div class="info-itemTop">
+          <div class="info-itemNum">${escapeHtml(c.num)}</div>
+          <div class="info-itemChip">${escapeHtml(c.chip)}</div>
+        </div>
+        <div class="info-itemTitle">${escapeHtml(c.title)}</div>
+        <div class="info-itemHook">${escapeHtml(c.hook)}</div>
+      `;
+
+      btn.addEventListener("click", () => goTo(c.id));
+      navList.appendChild(btn);
+    });
+  }
+
+    function renderHome(){
+    main.innerHTML = `
+      <div class="info-hero">
+        <div class="info-thesis">
+          HEKA is a modern year structure: readable, rhythmic, and explicit about correction.
+        </div>
+        <div class="info-subthesis">
+          Use it as a daily planner with civil dates available as a reference layer. Explore the deeper model only if you want to.
+        </div>
+
+        <div class="info-grid">
+          <div class="info-card">
+            <div class="info-cardTitle">What it changes</div>
+            <div class="info-cardBody">
+              The year layout, the month structure, and where correction occurs. HEKA keeps correction at the closing boundary instead of scattering it.
+            </div>
+          </div>
+
+          <div class="info-card">
+            <div class="info-cardTitle">What it does not change</div>
+            <div class="info-cardBody">
+              The clock, the 7 day week, time zones, daylight saving, or the seasons. HEKA changes the calendar structure, not time itself.
+            </div>
+          </div>
+
+          <div class="info-card">
+            <div class="info-cardTitle">How to use it now</div>
+            <div class="info-cardBody">
+              Keep civil dates visible, use notes, toggle layers like moon and holidays, and print month or year views when needed.
+            </div>
+          </div>
+        </div>
+
+        <div class="info-gates">
+          ${gateHtml("Recommended reading order", "PATH", `
+            Start with CH 1 and CH 2. Then read Features and Modes.
+            History and Human Effect are there for context, not required for use.
+          `)}
+          ${gateHtml("Two modes, one structure", "SYNC / TRUE", `
+            TRUE follows HEKA’s internal correction law.
+            SYNC aligns correction timing to civil leap expectations.
+            The month layout remains HEKA in both.
+          `)}
+          ${gateHtml("Layers you can toggle", "TOOLS", `
+            Civil overlay, moon phases, holiday sets, and notes are optional layers.
+            They enhance usability without altering HEKA’s structure.
+          `)}
+          ${gateHtml("When you want deeper proof", "TECH", `
+            Deep drift mapping and full proofs can live in dedicated technical pages.
+            The daily calendar does not depend on studying them.
+          `)}
+        </div>
+      </div>
+    `;
+
+    bindGates();
+  }
+
+  function renderStory(cfg){
+    main.innerHTML = `
+      <div class="info-hero">
+        <div class="info-thesis">${escapeHtml(cfg.title)}</div>
+        <div class="info-subthesis">${escapeHtml(cfg.lead)}</div>
+
+        <div class="info-grid">
+          ${cfg.cards.map(card => `
+            <div class="info-card">
+              <div class="info-cardTitle">${escapeHtml(card.h)}</div>
+              <div class="info-cardBody">${escapeHtml(card.b)}</div>
+            </div>
+          `).join("")}
+        </div>
+
+        <div class="info-gates">
+          ${cfg.gates.map(g => gateHtml(g.t, g.tag, g.b)).join("")}
+        </div>
+      </div>
+    `;
+
+    bindGates();
+  }
+
+  function renderMath(){
+    main.innerHTML = `
+      <div class="info-hero">
+        <div class="info-thesis">Mathematics & Proof</div>
+        <div class="info-subthesis">
+          This section is opt-in. It exists for verification and long-horizon trust.
+        </div>
+
+        <div class="info-gates">
+          ${gateHtml("Core rule: March correction", "RULE", `
+            Most years, March has 29 days.
+            Every 4th year, March becomes 30 days,
+            except every 128th year, where it remains 29.
+          `)}
+
+          ${gateHtml("Correction rule in pseudocode", "PROOF", `
+            <div class="info-code">
+              function marchDays(heYear){<br>
+              &nbsp;&nbsp;// heYear is the HEKA year label (the year that begins on Apr 1)<br>
+              &nbsp;&nbsp;const isFourth = (heYear % 4 === 0);<br>
+              &nbsp;&nbsp;const is128th = (heYear % 128 === 0);<br>
+              &nbsp;&nbsp;if (isFourth && !is128th) return 30;<br>
+              &nbsp;&nbsp;return 29;<br>
+              }<br>
+            </div>
+          `)}
+
+          ${gateHtml("Why the 128th exception exists", "RATIONALE", `
+            A simple 4-year correction is powerful but can slightly overcorrect on long horizons.
+            The 128th exception is a long-cycle governor that prevents slow accumulation in the other direction.
+          `)}
+
+          ${gateHtml("What to verify in practice", "TEST", `
+            Pick a known HEKA year where your system applies the 4-year correction.
+            Confirm March expands to 30 days in that year.
+            Then test a 128th year boundary: March must remain 29.
+            The calendar should remain consistent across month view and year view.
+          `)}
+        </div>
+      </div>
+    `;
+
+    bindGates();
+  }
+
+  function gateHtml(title, tag, bodyHtml){
+    return `
+      <div class="info-gate">
+        <button class="info-gateBtn" type="button">
+          <span class="info-gateTitle">${escapeHtml(title)}</span>
+          <span class="info-gateTag">${escapeHtml(tag)}</span>
+        </button>
+        <div class="info-gateBody">${bodyHtml}</div>
+      </div>
+    `;
+  }
+
+  function bindGates(){
+    const gates = main.querySelectorAll(".info-gate");
+    gates.forEach(g => {
+      const btn = g.querySelector(".info-gateBtn");
+      if (!btn) return;
+      btn.addEventListener("click", () => {
+        g.classList.toggle("is-open");
+      });
+    });
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, m => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[m]));
+  }
+
+    // Events
+  btnOpen.addEventListener("click", openModal);
+  btnClose.addEventListener("click", closeModal);
+
+  btnHome.addEventListener("click", () => {
+    stack.length = 0;
+    btnBack.disabled = true;
+    goTo("home", { push: false });
+  });
+
+  btnBack.addEventListener("click", goBack);
+
+  modal.addEventListener("click", (e) => {
+    const close = e.target && e.target.getAttribute && e.target.getAttribute("data-close");
+    if (close) closeModal();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && modal.classList.contains("is-open")) closeModal();
+  });
+
+  // Set initial
+  activeId = "home";
+
+})(); // ✅ closes the IIFE
+
+/* ===========================
+   END SCRIPT + CLOSE DOCUMENT
+=========================== */
+
+</script>
+</body>
+</html>
