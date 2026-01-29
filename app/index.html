@@ -3,6 +3,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  
+  <base href="./">
+
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#0b0b0f">
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="HEKA">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+
   <title>The Modern Heka Calendar</title>
 
   <style>
@@ -6068,6 +6079,37 @@ modal.setAttribute("data-chapter", id);
    END SCRIPT + CLOSE DOCUMENT
 =========================== */
 
+</script>
+  <script>
+  (function(){
+    if (!("serviceWorker" in navigator)) return;
+
+    let reloading = false;
+
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (reloading) return;
+      reloading = true;
+      window.location.reload();
+    });
+
+    window.addEventListener("load", async () => {
+      try {
+        const reg = await navigator.serviceWorker.register("./sw.js");
+
+        reg.addEventListener("updatefound", () => {
+          const nw = reg.installing;
+          if (!nw) return;
+          nw.addEventListener("statechange", () => {
+            if (nw.state === "installed" && navigator.serviceWorker.controller) {
+              nw.postMessage({ type: "SKIP_WAITING" });
+            }
+          });
+        });
+      } catch (e) {
+        console.log("Service worker failed:", e);
+      }
+    });
+  })();
 </script>
 </body>
 </html>
